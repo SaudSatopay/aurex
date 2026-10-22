@@ -1,7 +1,7 @@
 import { WaveBand } from "@/components/art/ornaments";
 import { Loupe } from "@/components/art/loupe";
 import { Rosette } from "@/components/art/rosette";
-import { StruckWordmark } from "@/components/art/wordmark";
+import { StruckWordmark, WordmarkGlow, WordmarkLight } from "@/components/art/wordmark";
 import { Reveal, WordReveal } from "@/components/motion/reveal";
 
 import { DEMO_HREF, SIGN_UP_HREF } from "./content";
@@ -11,12 +11,17 @@ import { Container, CtaLink } from "./primitives";
 /** The face of the note: the name struck in gold across the plate, the engraved medallion behind it. */
 function HeroEmblem({ still = false }: { still?: boolean }) {
   return (
-    <div className="relative aspect-[1180/430] w-full">
-      <div className="absolute top-1/2 left-[63%] aspect-square w-[50%] -translate-x-1/2 -translate-y-1/2 opacity-50">
+    <div className="relative aspect-[1180/460] w-full">
+      {/* The medallion is centred on the name and fades out below it, so the claim can sit over its foot. */}
+      <div className="absolute top-1/2 left-1/2 aspect-square w-[58%] -translate-x-1/2 -translate-y-1/2 opacity-55 [mask-image:linear-gradient(to_bottom,black_58%,transparent_88%)]">
         <Rosette animate={!still} delay={0.05} />
       </div>
       <div className="absolute inset-x-0 top-1/2 -translate-y-1/2">
-        <StruckWordmark animate={!still} delay={0.25} />
+        <div className="relative">
+          {still ? null : <WordmarkGlow />}
+          <StruckWordmark animate={!still} delay={0.25} className="relative" />
+          {still ? null : <WordmarkLight />}
+        </div>
       </div>
     </div>
   );
@@ -32,11 +37,11 @@ export function HomeHero() {
   return (
     <section aria-labelledby="hero-title" className="relative isolate overflow-hidden text-paper">
       <div aria-hidden className="aurora-hero" />
-      <Container className="relative pt-28 pb-16 sm:pt-32 lg:pt-36 lg:pb-24">
-        <Loupe className="w-full" zoom={3} size={210} magnified={<HeroEmblem still />}>
+      <Container className="relative pt-24 pb-16 sm:pt-28 lg:pt-28 lg:pb-24">
+        <Loupe className="w-full" zoom={3} size={240} magnified={<HeroEmblem still />}>
           <HeroEmblem />
         </Loupe>
-        <div className="mt-12 grid gap-8 sm:mt-16 lg:mt-24 lg:grid-cols-12 lg:items-end lg:gap-12">
+        <div className="relative mt-8 grid gap-8 sm:mt-10 lg:mt-6 lg:grid-cols-12 lg:items-end lg:gap-12">
           <h1 id="hero-title" className="text-display text-[2.6rem] sm:text-[3.75rem] lg:col-span-7 lg:text-[4.5rem]">
             <span className="sr-only">AUREX. </span>
             <WordReveal text="Test a decision before you make it." mode="strike" delay={0.95} stagger={0.06} />

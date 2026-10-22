@@ -458,13 +458,34 @@
   animation: lathe-sweep 1.5s var(--ease-out) var(--lathe-delay, 0s) forwards;
 }
 
-/* One glint of light across struck gold (the wordmark), once, after it lands. */
-@keyframes glint {
-  from { transform: translateX(0); }
-  to { transform: translateX(118px); }
+/* The struck wordmark keeps living: a gold halo breathes behind it and a wave of light flows across the
+   foil. Opacity and transform only, on their own layers. */
+@keyframes glow-in {
+  from { opacity: 0; }
+  to { opacity: 0.28; }
 }
-.glint {
-  animation: glint 1.3s var(--ease-in-out) var(--glint-delay, 1s) both;
+@keyframes glow-breathe {
+  from { opacity: 0.28; }
+  to { opacity: 0.62; }
+}
+.wordmark-glow {
+  filter: blur(18px);
+  opacity: 0;
+  will-change: opacity;
+  /* fade in once the letters have landed, then breathe */
+  animation: glow-in 0.9s var(--ease-out) 1.2s both, glow-breathe 3.2s var(--ease-in-out) 2.1s infinite alternate;
+}
+@keyframes light-wave {
+  0% { transform: translateX(-34%); }
+  62%, 100% { transform: translateX(34%); }
+}
+.wordmark-light {
+  background: linear-gradient(100deg, transparent 38%, oklch(0.98 0.05 92 / 0.0) 40%,
+      oklch(0.98 0.05 92 / 0.55) 46%, oklch(1 0 0 / 0.8) 50%, oklch(0.98 0.05 92 / 0.55) 54%,
+      oklch(0.98 0.05 92 / 0) 60%, transparent 62%);
+  mix-blend-mode: soft-light;
+  will-change: transform;
+  animation: light-wave 4.6s var(--ease-in-out) 1.6s infinite both;
 }
 
 /* Struck in: from slightly large and soft to pressed and sharp, like a coin leaving the press. */
@@ -511,7 +532,8 @@
 @media (prefers-reduced-motion: reduce) {
   [data-reveal] { opacity: 1 !important; transform: none !important; filter: none !important; }
   .engrave, .lathe-sweep { animation: none !important; stroke-dashoffset: 0 !important; }
-  .glint { animation: none !important; }
+  .wordmark-glow { animation: none !important; opacity: 0.4 !important; }
+  .wordmark-light { animation: none !important; display: none; }
   .engrave-wait, .seal-wait { opacity: 1 !important; }
   .seal { animation: none !important; }
   [data-beam] { display: none !important; }
