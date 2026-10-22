@@ -446,6 +446,27 @@
   animation: engrave var(--engrave-duration, 1.6s) var(--ease-out) var(--engrave-delay, 0s) forwards;
 }
 
+/* The lathe sweep that cuts a rosette band in. The dash (1.05) is longer than the circle (pathLength 1), so
+   the finished mask covers the whole turn with no hairline seam where the stroke starts and ends. */
+@keyframes lathe-sweep {
+  from { stroke-dashoffset: 1.05; }
+  to { stroke-dashoffset: 0; }
+}
+.lathe-sweep {
+  stroke-dasharray: 1.05;
+  stroke-dashoffset: 1.05;
+  animation: lathe-sweep 1.5s var(--ease-out) var(--lathe-delay, 0s) forwards;
+}
+
+/* One glint of light across struck gold (the wordmark), once, after it lands. */
+@keyframes glint {
+  from { transform: translateX(0); }
+  to { transform: translateX(118px); }
+}
+.glint {
+  animation: glint 1.3s var(--ease-in-out) var(--glint-delay, 1s) both;
+}
+
 /* Struck in: from slightly large and soft to pressed and sharp, like a coin leaving the press. */
 @keyframes strike-in {
   from { opacity: 0; transform: scale(1.06); filter: blur(10px); }
@@ -489,7 +510,8 @@
    mismatch); these rules simply win over the inline starting styles. */
 @media (prefers-reduced-motion: reduce) {
   [data-reveal] { opacity: 1 !important; transform: none !important; filter: none !important; }
-  .engrave { animation: none !important; stroke-dashoffset: 0 !important; }
+  .engrave, .lathe-sweep { animation: none !important; stroke-dashoffset: 0 !important; }
+  .glint { animation: none !important; }
   .engrave-wait, .seal-wait { opacity: 1 !important; }
   .seal { animation: none !important; }
   [data-beam] { display: none !important; }

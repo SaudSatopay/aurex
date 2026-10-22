@@ -93,8 +93,8 @@ export function Rosette({
           fill="none"
           pathLength={1}
           transform={`rotate(-90 ${C} ${C})`}
-          className="engrave"
-          style={{ "--engrave-delay": `${at}s`, "--engrave-duration": "1.5s" } as CSSProperties}
+          className="lathe-sweep"
+          style={{ "--lathe-delay": `${at}s` } as CSSProperties}
         />
       </mask>
     ) : null;

@@ -28,7 +28,7 @@ const POINT = { cx: 16, cy: 22.4, r: 2.4 };
 
 // Wordmark letters on a 20-unit cap height, stroke weight 3. Separate paths so overlapping strokes
 // never cancel out under even-odd filling.
-const WORDMARK_PATHS = [
+export const WORDMARK_PATHS = [
   // A (apex form, echoes the mark)
   "M0 20 L7.5 0 L15 20 H11.8 L7.5 8.533 L3.2 20 Z",
   // U
