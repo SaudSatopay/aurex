@@ -14,6 +14,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.core.errors import InsufficientDataError, NotFoundError
+from app.core.jsonsafe import sanitize
 from app.models import (
     Company,
     ForecastBacktest,
@@ -118,9 +119,12 @@ def train_target(db: Session, *, org_id: uuid.UUID, company: Company, target: st
         metrics["monthly_relative_error_quantiles"] = monthly_q
     model = ForecastModel(
         org_id=org_id, company_id=company.id, target=target, level=level, level_key=key, frequency=spec.freq,
-        version=version, algorithm=result.selected, hyperparameters=result.params,
-        candidates=[c.__dict__ for c in result.candidates], baseline_algorithm=result.baseline, metrics=metrics,
-        baseline_metrics=result.baseline_metrics, skill_vs_baseline=result.skill_vs_baseline,
+        # JSON columns: PostgreSQL rejects NaN/Infinity in json (e.g. a Holt-Winters smoothing parameter the
+        # optimizer could not estimate), so non-finite numbers are stored as null.
+        version=version, algorithm=result.selected, hyperparameters=sanitize(result.params),
+        candidates=sanitize([c.__dict__ for c in result.candidates]), baseline_algorithm=result.baseline,
+        metrics=sanitize(metrics), baseline_metrics=sanitize(result.baseline_metrics),
+        skill_vs_baseline=result.skill_vs_baseline,
         reliability=result.reliability, training_start=date.fromisoformat(result.training_start),
         training_end=date.fromisoformat(result.training_end), n_observations=result.n_observations,
         data_fingerprint=result.data_fingerprint, random_seed=42, code_version=ENGINE_VERSION,

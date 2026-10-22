@@ -140,3 +140,26 @@ def test_insufficient_history_raises() -> None:
         company = db.scalar(select(Company).where(Company.org_id == org.id))
         with pytest.raises(InsufficientDataError):
             train_target(db, org_id=org.id, company=company, target="operating_expenses")  # only ~6 months
+
+
+def test_non_finite_model_parameters_are_stored_as_null(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """A NaN hyperparameter (Holt-Winters can return one) must not abort saving the model (json rejects NaN)."""
+    from app.services.forecasting import service
+
+    real = service.evaluate_and_forecast
+
+    def with_nan(*args, **kwargs):  # type: ignore[no-untyped-def]
+        result = real(*args, **kwargs)
+        result.params = {**result.params, "smoothing_seasonal": float("nan"), "damping": float("inf")}
+        return result
+
+    monkeypatch.setattr(service, "evaluate_and_forecast", with_nan)
+    with session_scope() as db:
+        org = db.scalar(select(Organization).where(Organization.is_demo.is_(True)))
+        company = db.scalar(select(Company).where(Company.org_id == org.id))
+        model = service.train_target(db, org_id=org.id, company=company, target="net_sales")
+        model_id = model.id
+    with session_scope() as db:
+        stored = db.get(ForecastModel, model_id)
+        assert stored.hyperparameters["smoothing_seasonal"] is None
+        assert stored.hyperparameters["damping"] is None
