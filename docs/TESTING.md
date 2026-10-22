@@ -21,7 +21,7 @@ through Playwright's API request context.
 
 | Check | Command | Result |
 |---|---|---|
-| Backend tests | `pytest -q` (backend) | **168 passed**, 0 failed (≈36 s) |
+| Backend tests | `pytest -q` (backend) | **169 passed**, 0 failed (92 s, 2026-10-22; adds the NaN model-parameter regression test) |
 | Backend lint | `ruff check app tests` / `ruff check scripts` | clean |
 | Migrations vs models | `alembic upgrade head` then `alembic check` | head = 0003; "No new upgrade operations detected" |
 | Frontend types | `npx tsc --noEmit` | 0 errors |
@@ -32,6 +32,14 @@ through Playwright's API request context.
 | GitHub Actions CI — backend | `.github/workflows/ci.yml` on ubuntu-latest, PostgreSQL 17 service (run 39158620456, commit 4ad5b38) | ruff clean; **168 passed** (31.8 s) |
 | GitHub Actions CI — frontend | same run | `tsc`, `eslint` and `next build` passed (37 pages) |
 | GitHub Actions CI — images | same run | `docker compose config` valid; `aurex-backend` and `aurex-web` images built |
+| Vercel — health and readiness | `curl https://aurex-nu-nine.vercel.app/api/v1/health` and `/health/ready` | 200 / 200: database ok (migration 0003), storage ok, task backend inline, advisor deterministic |
+| Vercel — demo session | `POST /api/v1/auth/demo/login {"role":"executive"}`, then `GET /orgs/{org}/dashboard/executive` and `/forecasts` with the cookies | 200 in 0.3 s; 200 in 1.1 s; 200 in 0.5 s. Cookies `HttpOnly`, `Secure`, host-only on the deployment domain |
+| Vercel — write path | `POST /orgs/{org}/reports` (CSV, with `X-CSRF-Token`), `GET` the report, `GET .../download` three times | 202, then status `completed` (synchronous job), three downloads 200 with the same 2,975 bytes |
+| Vercel — hosted data | `python -m app.seed.demo --profile hosted --train --if-empty` against Neon | 22 forecast models; database 139 MB. The first run exposed NaN Holt-Winters parameters rejected by PostgreSQL JSON (fixed; 4 models retrained) |
+| Art direction — frontend checks | `npx tsc --noEmit`, `npx eslint src`, `next build` (through `launch.bat start -Rebuild`) | 0 errors, 0 problems, build succeeded (2026-10-23) |
+| Art direction — reduced motion | Playwright with `reducedMotion: "reduce"` on the production build: `/`, `/product`, `/integrations`, `/security`, `/about`, `/sign-in`; counts rendered headings, paragraphs, links, buttons and reveal elements with opacity < 0.05 | 0 hidden elements on every page (before the fix: about 85 on the home page); the same pages with JavaScript disabled: 0 hidden |
+| Art direction — headless screenshots | Playwright on the installed Chrome (downloads refused) at 1440×900 and 390×844: home (with the loupe), product, sign-in and demo roles, dashboard, forecasts, Decision Lab, integrations, advisor, reports, workflows, settings | All rendered; no console errors after fixes |
+| Art direction — e2e | `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 PLAYWRIGHT_CHANNEL=chrome npx playwright test e2e` against the production build | **13 passed** (25.6 s); a first run caught a shortened checksum without its ellipsis (fixed) |
 | `launch.bat` — fresh-PC simulation | `launch.bat start -PortableTools -DryRun -NoPause` | Lists every step in order: download uv 0.11.24 and Node.js 22.19.0, install backend and frontend packages, PostgreSQL binaries, database start and migrations, demo data, web build, API and web start |
 | `launch.bat` — real run on the development PC | `launch.bat start -NoBrowser -NoPause` from a stopped state, with `UV_OFFLINE=1` and npm offline as a guard against downloads | PostgreSQL started, web app rebuilt, API started, dashboard warmed up, web app started: 37 s. Through the web origin: sign-in page, demo sign-in, dashboard (1.1 s) and a Decision Lab simulation returned 200. `launch.bat status` correct; a repeat `start` reused the running servers in 5 s; `launch.bat stop` stopped web, API and PostgreSQL |
 
@@ -99,6 +107,7 @@ Measured timings (development machine, full 36-month NovaMart dataset):
 - Live vendor connections (none is authorized; see INTEGRATIONS.md), live market-data providers and live news fetching
   (disabled by default). Connectors are tested with injected transports and a local SFTP server.
 - Real-browser downloads in e2e (deliberately avoided; files are verified through the API).
+- Lighthouse on the redesigned pages; the art direction on Safari and Firefox (headless Chrome only).
 - `launch.bat` on a computer that really has nothing installed: its download path (uv, Python, Node.js, PostgreSQL
   binaries, packages, the Visual C++ runtime) ran only as a dry run here, because nothing may be downloaded on the
   development PC. Every other step ran for real.
@@ -121,6 +130,12 @@ returning 404; partial interpolation of long gaps; partial last baseline month; 
 Second review: workforce scenarios now need workforce access; cost assumptions redacted on recommendations and in the advisor's simulation tool; opex assumptions without absolute bases; recommendations from multi-store scenarios visible to their store-scoped authors; payback evaluated whenever cash dips; aggregate rebuild after failures in its own session; vendor profiles stay `awaiting_credentials` after uploads; weekly interpolation of interior gaps only; a 50% cost-coverage floor for the baseline margin; budget COGS consistent with estimated gross profit; store-level marketing scenarios using allocated, not company, spend; cookie paths from the API prefix; platform-wide reference rows unique (migration 0003); dead code removed.
 Verification: an e2e test that depended on scenarios left by earlier runs; a first dashboard request of 18 s right after a bulk seed (autovacuum contention), fixed by ending the seed with `VACUUM (ANALYZE)`.
 Frontend: download helper revoking the object URL too early and saving empty files when a download manager intercepts.
+Art direction (found by e2e, reduced-motion runs and screenshots): reveal wrappers rendered different markup on the server and
+in the browser under `prefers-reduced-motion`, so React kept the hidden starting state and pages stayed blank for those users
+(now one markup, with CSS resting states); reveals keyed to 25% visibility never fired on blocks taller than the viewport; a
+wrapper dropped the "Saved scenarios" list label; engraved bands stopped short on screens wider than 1200 px; shortened
+SHA-256 checksums lost their ellipsis and read as complete values; hero headline spaces collapsed; a tabular decimal point
+in the health score.
 Launcher testing: `localhost` resolving to IPv6 `::1` where another program listened on port 3000 (ports are now
 checked on every address and the launcher opens `127.0.0.1`); servers started with `Start-Process` redirection
 inheriting the launcher's output pipe (now started through ShellExecute with `cmd.exe` writing the logs); the 30 s

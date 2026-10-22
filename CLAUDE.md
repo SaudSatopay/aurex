@@ -41,6 +41,8 @@ Windows dev box (Git Bash paths shown). Backend venv: `backend/.venv` (managed b
 | Lint | `cd backend && .venv/Scripts/python.exe -m ruff check app tests`; repo scripts: `ruff check scripts` from the root |
 | Frontend checks | `cd frontend && npx tsc --noEmit && npx eslint src && npx next build` |
 | Periodic tasks without Celery | `python -m app.worker.periodic schedule-syncs|purge-retention|refresh-news` |
+| Deploy to Vercel (repo root, project `aurex`) | `vercel deploy` (preview) / `vercel deploy --prod`; setup and env vars in `docs/DEPLOYMENT.md` section 10 |
+| Seed the hosted (Neon) demo | `AUREX_DATABASE_URL=<neon unpooled, postgresql+psycopg://...> python -m app.seed.demo --profile hosted --train` (~139 MB, fits the free 0.5 GB) |
 | Demo sign-in (API) | `POST /api/v1/auth/demo/login {"role": "executive"}` (needs `AUREX_DEMO_MODE=true`) |
 
 ## Architecture in one screen
@@ -92,6 +94,18 @@ Windows dev box (Git Bash paths shown). Backend venv: `backend/.venv` (managed b
 - **Download nothing.** The dev machine runs a download manager (IDM) that pops up for every browser download: no
   package installs, no Playwright browser installs, no web fetches, and e2e specs use `acceptDownloads: false` and verify
   files through the API request context. Run Playwright on the installed Chrome (`PLAYWRIGHT_CHANNEL=chrome`).
+- Vercel: `vercel.json` defines two Services (`web` = frontend, `api` = backend `app.main:app`); `/api/*` goes to the API
+  on the same origin. On Vercel jobs run synchronously in the request (`AUREX_INLINE_JOBS_SYNCHRONOUS=true`) and files
+  live in per-instance `/tmp`. Keep `.vercelignore` excluding `.tools`, `.devtools`, `.venv`, `node_modules`, tests.
+- Art direction ("struck in gold, proven in ink"): AUREX is printed like a security document. Tokens and materials
+  are in `frontend/src/app/globals.css` (block "AUREX art direction"): paper/sheet/ink/plate/gold/prussian/verdigris/
+  oxblood/UV colours; `glass` = printed sheet, `glass-strong` = glassine (frosted paper, the only real glass),
+  `glass-ink` = glassine on a plate, `.aurora-hero` = ink plate, `.aurora-canvas` = security paper; `text-display` and
+  `numeral` use Fraunces (self-hosted). Engraving is generated in code (`src/components/art/*`: guilloche maths,
+  `Rosette`, `Loupe`, `WaveBand`, `MintMark`, `Seal`, `SpecimenOverprint`, `CutMarks`, `Watermark`); ported kit pieces in
+  `src/components/kit/*` (`SpotlightCard` is a UV lamp); motion in `src/components/motion/*` (strike/press, critically
+  damped). Rules: no gradient text or single accented headline word, no arrows appended to links, no ALL-CAPS eyebrows
+  (stamp words excepted), no identical card grids, seals/overprints aria-hidden with their words also in text.
 - Fonts are self-hosted (`frontend/src/app/fonts.css`, `frontend/public/fonts`, OFL-licensed); do not reintroduce
   `next/font/google`, which fetches from Google on every build.
 

@@ -109,6 +109,9 @@ Evidence for "verified" is in [docs/TESTING.md](docs/TESTING.md). Last updated: 
 - [x] README, CLAUDE.md, this checklist, docs (architecture, data model, metrics, integrations, forecasting, Decision Lab, advisor, NovaMart, security, deployment, testing)
 - [x] One-click Windows launcher `launch.bat` (`scripts/launch.ps1`): portable uv/Python/Node.js/PostgreSQL in `.tools\`, packages, database, demo data, build, start/stop/status/reset-demo; verified on the development PC
 - [~] `launch.bat` download path on a genuinely fresh PC verified as a dry run only (no downloads allowed on the development PC)
+- [x] Vercel deployment (one project, Services: Next.js + FastAPI) on Neon PostgreSQL with the hosted demo profile: https://aurex-nu-nine.vercel.app — health, readiness, demo sign-in, dashboard, forecasts and a report round trip verified
+- [~] Vercel limits: files in per-instance `/tmp` (reports may need regenerating), jobs synchronous in the request, in-memory rate limits, no Celery beat (periodic tasks not scheduled)
+- [x] Art direction "struck in gold, proven in ink" across the public site, auth and workspace: security-print materials, generated guilloche engraving, glass loupe, seals, SPECIMEN overprint for synthetic data, UV-lamp hovers; reduced motion and no-JavaScript render every element (checked)
 
 ## Known limitations and next steps
 - MFA/SSO and e-mail delivery are not implemented.
