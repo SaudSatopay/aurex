@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: light)", color: "#e8eeea" },
     { media: "(prefers-color-scheme: dark)", color: "#0b1426" },
   ],
 };
@@ -29,7 +29,7 @@ export const viewport: Viewport = {
 const PRELOADED_FONTS = [
   "/fonts/geist-latin.woff2",
   "/fonts/geist-mono-latin.woff2",
-  "/fonts/schibsted-grotesk-latin.woff2",
+  "/fonts/fraunces-latin.woff2",
 ];
 
 // Explicit props (not the generated global LayoutProps) so `tsc` passes on a fresh checkout before `next build`.
@@ -40,6 +40,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className="h-full antialiased">
       <body className="min-h-full flex flex-col">
+        {/* Without JavaScript, content that would reveal on scroll is simply shown. */}
+        <noscript>
+          <style>{"[data-reveal]{opacity:1!important;transform:none!important;filter:none!important}.engrave-wait,.seal-wait{opacity:1!important}"}</style>
+        </noscript>
         <Providers>{children}</Providers>
       </body>
     </html>

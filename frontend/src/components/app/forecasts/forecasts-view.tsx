@@ -10,6 +10,7 @@ import { NoteList, PageHeader, Panel, SectionHeading } from "@/components/app/pa
 import { useSession } from "@/components/app/session-provider";
 import { ChartSkeleton, EmptyState, SkeletonBlock, TableSkeleton } from "@/components/app/states";
 import { QueryError, ReliabilityBadge, SyntheticBadge } from "@/components/app/decision-lab/common";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -153,7 +154,7 @@ function ModelsOverview({ models, onSelect, activeId }: { models: ForecastModel[
         rows={models}
         rowKey={(r) => r.id}
         defaultSort={{ key: "target", dir: "asc" }}
-        rowClassName={(r) => (r.id === activeId ? "bg-brand-50/60 dark:bg-brand-800/15" : undefined)}
+        rowClassName={(r) => (r.id === activeId ? "bg-primary/[0.06] dark:bg-primary/[0.1]" : undefined)}
         columns={[
           { key: "target", header: "Target", cell: (r) => r.target_label, sortValue: (r) => r.target_label },
           { key: "series", header: "Series", cell: (r) => r.level_label, sortValue: (r) => r.level_label },
@@ -279,12 +280,12 @@ export function ForecastsView() {
     );
   }
 
-  const selectClass = "w-full bg-background sm:w-auto sm:min-w-[12rem]";
+  const selectClass = "w-full bg-white/60 sm:w-auto sm:min-w-[12rem] dark:bg-white/[0.06]";
   return (
     <>
       {header}
       <div className="space-y-6">
-        <div className="flex flex-wrap items-end gap-3" role="group" aria-label="Choose a forecast">
+        <div className="flex flex-wrap items-end gap-3 rounded-2xl glass px-4 py-3.5 sm:px-5" role="group" aria-label="Choose a forecast">
           <div className="min-w-0 space-y-1.5">
             <Label htmlFor="fc-target">Target</Label>
             <Select value={target?.key} onValueChange={(value) => set({ target: value, level: null, key: null, model: null })}>
@@ -340,7 +341,7 @@ export function ForecastsView() {
         </div>
 
         {modelId && detail.data && !detail.data.is_active ? (
-          <p className="rounded-lg bg-warning/12 px-3.5 py-2.5 text-sm ring-1 ring-warning/30">
+          <p className="rounded-xl bg-warning/12 px-3.5 py-2.5 text-sm shadow-[inset_0_1px_0_var(--glass-edge)] ring-1 ring-warning/30">
             You are viewing version {detail.data.version}, which is not the active version.{" "}
             <button type="button" className="font-medium text-primary underline-offset-3 hover:underline" onClick={() => set({ model: null })}>
               Back to the active version
@@ -375,23 +376,31 @@ export function ForecastsView() {
             <QueryError error={detail.error} onRetry={() => void detail.refetch()} />
           </Panel>
         ) : (
-          <div className={detail.isPlaceholderData ? "space-y-6 opacity-55 transition-opacity" : "space-y-6 transition-opacity"}>
+          <div className={detail.isPlaceholderData ? "space-y-6 opacity-55 transition-opacity duration-200" : "space-y-6 transition-opacity duration-200"}>
             <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
               <div className="min-w-0 space-y-6">
                 <ForecastPanel detail={shown} currency={currency} granularity={granularity} onGranularity={(g) => set({ gran: g === "native" ? null : g })} />
-                <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                  <CandidatesPanel model={shown} currency={currency} />
-                  <BacktestsPanel detail={shown} currency={currency} />
-                </div>
+                <RevealGroup className="grid gap-6 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2" stagger={0.05}>
+                  <RevealItem y={12} className="min-w-0">
+                    <CandidatesPanel model={shown} currency={currency} />
+                  </RevealItem>
+                  <RevealItem y={12} className="min-w-0">
+                    <BacktestsPanel detail={shown} currency={currency} />
+                  </RevealItem>
+                </RevealGroup>
               </div>
               <div className="min-w-0 space-y-6">
                 <ModelCard model={shown} methodology={data.methodology} currency={currency} />
               </div>
             </div>
-            <div className="grid gap-6 xl:grid-cols-2">
-              <VersionsPanel detail={shown} selectedId={modelId} onSelect={(id) => set({ model: id })} />
-              <MethodologyPanel methodology={data.methodology} />
-            </div>
+            <RevealGroup className="grid gap-6 xl:grid-cols-2" stagger={0.05}>
+              <RevealItem y={12} className="min-w-0">
+                <VersionsPanel detail={shown} selectedId={modelId} onSelect={(id) => set({ model: id })} />
+              </RevealItem>
+              <RevealItem y={12} className="min-w-0">
+                <MethodologyPanel methodology={data.methodology} />
+              </RevealItem>
+            </RevealGroup>
           </div>
         )}
 

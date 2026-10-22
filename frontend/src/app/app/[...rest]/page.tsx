@@ -33,6 +33,7 @@ function NotFound() {
   return (
     <div className="mx-auto max-w-xl py-12">
       <EmptyState
+        className="rounded-3xl glass"
         icon={CompassIcon}
         title={item ? `${item.label} isn’t available in this build yet` : "This page doesn’t exist"}
         description={

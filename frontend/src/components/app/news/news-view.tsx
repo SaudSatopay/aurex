@@ -17,6 +17,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 
+import { MintMark } from "@/components/art/ornaments";
 import { PermissionGate } from "@/components/app/access";
 import { StatusBadge } from "@/components/app/badges";
 import { fieldErrors, FormError, TextAreaField, TextField } from "@/components/app/form";
@@ -25,6 +26,7 @@ import { Pagination } from "@/components/app/pagination";
 import { useSession } from "@/components/app/session-provider";
 import { EmptyState, SkeletonBlock } from "@/components/app/states";
 import { ExternalLink, hostOf, QueryError, toastError } from "@/components/app/decision-lab/common";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -99,10 +101,18 @@ function ArticleCard({
   const facts = article.reported_facts;
   const ai = article.ai_interpretation;
   const host = hostOf(article.url);
+  const company = article.entity_keys?.[0];
   return (
-    <article className="rounded-xl bg-card ring-1 ring-foreground/10" aria-labelledby={`news-${article.id}`}>
+    <article
+      className={cn(
+        "lift relative rounded-2xl glass text-card-foreground",
+        article.is_official_announcement && "before:absolute before:inset-y-4 before:left-0 before:w-0.5 before:rounded-r-full before:bg-prussian/70",
+      )}
+      aria-labelledby={`news-${article.id}`}
+    >
+      {company ? <MintMark name={`company:${company}`} className="pointer-events-none absolute top-4 right-4 size-9 opacity-80 sm:right-5" /> : null}
       <div className="space-y-3 px-4 py-4 sm:px-5">
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className={cn("flex flex-wrap items-center gap-1.5", company && "pr-12")}>
           {article.is_official_announcement ? (
             <StatusBadge tone="info" icon={MegaphoneIcon}>
               Official announcement
@@ -120,7 +130,7 @@ function ArticleCard({
             <StatusBadge key={key}>{companies[key] ?? humanize(key)}</StatusBadge>
           ))}
         </div>
-        <div>
+        <div className={company ? "pr-12" : undefined}>
           <h2 id={`news-${article.id}`} className="font-heading text-[0.9375rem] leading-snug font-semibold">
             <ExternalLink href={article.url} className="text-[0.9375rem] text-foreground">
               {article.title}
@@ -141,7 +151,7 @@ function ArticleCard({
           </p>
         </div>
 
-        <section aria-label="Reported facts" className="rounded-lg bg-muted/55 px-3.5 py-3">
+        <section aria-label="Reported facts" className="rounded-lg border border-(--glass-border) bg-paper/55 px-3.5 py-3">
           <p className="text-xs font-semibold text-muted-foreground">Reported facts (from the source)</p>
           {facts?.text ? (
             <>
@@ -154,7 +164,7 @@ function ArticleCard({
         </section>
 
         {ai ? (
-          <section aria-label="AI-generated interpretation" className="rounded-lg px-3.5 py-3 ring-1 ring-warning/35 ring-inset">
+          <section aria-label="AI-generated interpretation" className="rounded-lg border border-dashed border-warning/60 bg-warning/[0.04] px-3.5 py-3">
             <p className="flex flex-wrap items-center gap-2 text-xs font-semibold">
               <SparklesIcon className="size-3.5 text-warning" aria-hidden />
               AI-generated interpretation — not verified
@@ -207,9 +217,9 @@ function SourcesPanel() {
     <Panel title="Sources" description="Feeds and pages the news desk monitors">
       {query.isPending ? (
         <div className="space-y-2">
-          <SkeletonBlock className="h-12" />
-          <SkeletonBlock className="h-12" />
-          <SkeletonBlock className="h-12" />
+          <SkeletonBlock className="h-12 rounded-xl" />
+          <SkeletonBlock className="h-12 rounded-xl" />
+          <SkeletonBlock className="h-12 rounded-xl" />
         </div>
       ) : query.error || !query.data ? (
         <QueryError compact error={query.error} onRetry={() => void query.refetch()} />
@@ -220,9 +230,9 @@ function SourcesPanel() {
               ? "Automatic fetching is on: sources are checked on a schedule."
               : "Automatic fetching is off on this deployment: articles are curated and added by hand."}
           </p>
-          <ul className="max-h-[32rem] divide-y overflow-y-auto pr-1">
+          <ul className="max-h-[32rem] divide-y divide-(--glass-border) overflow-y-auto pr-1">
             {query.data.sources.map((s) => (
-              <li key={s.id} className="space-y-1 py-2.5 first:pt-0">
+              <li key={s.id} className="space-y-1 rounded-lg px-1.5 py-2.5 transition-colors duration-200 hover:bg-white/45 dark:hover:bg-white/[0.04]">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <ExternalLink href={s.url} className="text-[0.8125rem]">
                     {s.name}
@@ -334,7 +344,11 @@ function AddArticleDialog({ companies }: { companies: { key: string; name: strin
               {companies.map((c) => {
                 const id = `${baseId}-${c.key}`;
                 return (
-                  <label key={c.key} htmlFor={id} className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-muted">
+                  <label
+                    key={c.key}
+                    htmlFor={id}
+                    className="flex cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1 text-sm transition-colors duration-200 hover:bg-white/60 dark:hover:bg-white/[0.06]"
+                  >
                     <Checkbox
                       id={id}
                       checked={form.companies.includes(c.key)}
@@ -348,7 +362,10 @@ function AddArticleDialog({ companies }: { companies: { key: string; name: strin
               })}
             </div>
           </fieldset>
-          <label htmlFor={`${baseId}-official`} className="flex items-center justify-between gap-3 rounded-lg bg-muted/50 px-3 py-2.5 text-sm">
+          <label
+            htmlFor={`${baseId}-official`}
+            className="flex items-center justify-between gap-3 rounded-xl border border-(--glass-border) bg-white/45 px-3 py-2.5 text-sm dark:bg-white/[0.04]"
+          >
             <span>
               <span className="font-medium">Official announcement</span>
               <span className="block text-xs text-muted-foreground">Issued by the company or filed with an exchange</span>
@@ -447,7 +464,7 @@ export function NewsView() {
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-4">
-          <div className="flex flex-wrap items-end gap-3 rounded-xl bg-muted/40 p-3 ring-1 ring-foreground/8" role="search" aria-label="Filter news">
+          <div className="flex flex-wrap items-end gap-3 rounded-2xl glass p-3" role="search" aria-label="Filter news">
             <div className="min-w-[14rem] flex-1 space-y-1">
               <Label htmlFor={searchId} className="text-xs text-muted-foreground">
                 Search
@@ -520,7 +537,7 @@ export function NewsView() {
           {news.isPending ? (
             <div className="space-y-3" aria-busy="true">
               {Array.from({ length: 4 }, (_, i) => (
-                <SkeletonBlock key={i} className="h-44" />
+                <SkeletonBlock key={i} className="h-44 rounded-2xl" />
               ))}
             </div>
           ) : news.error || !news.data ? (
@@ -536,14 +553,18 @@ export function NewsView() {
               />
             </Panel>
           ) : (
-            <div className={cn("space-y-3 transition-opacity", news.isPlaceholderData && "opacity-55")}>
+            <div className={cn("space-y-3 transition-opacity duration-200", news.isPlaceholderData && "opacity-55")}>
               <p className="text-sm text-muted-foreground" aria-live="polite">
                 {formatNumber(news.data.total)} article{news.data.total === 1 ? "" : "s"}
                 {filters.duplicates ? " including similar reports" : ", similar reports grouped"}
               </p>
-              {news.data.articles.map((a) => (
-                <ArticleCard key={a.id} article={a} companies={companyNames} canManage={canManage} />
-              ))}
+              <RevealGroup className="space-y-3" stagger={0.05}>
+                {news.data.articles.map((a) => (
+                  <RevealItem key={a.id} y={12}>
+                    <ArticleCard article={a} companies={companyNames} canManage={canManage} />
+                  </RevealItem>
+                ))}
+              </RevealGroup>
               {news.data.total > PAGE_SIZE ? (
                 <Pagination page={filters.page} pageSize={PAGE_SIZE} total={news.data.total} onPageChange={(p) => filters.set({ page: p ? String(p) : null }, false)} disabled={news.isFetching} />
               ) : null}
@@ -552,8 +573,8 @@ export function NewsView() {
         </div>
         <aside className="min-w-0 space-y-4" aria-label="News sources">
           <SourcesPanel />
-          <div className="flex items-start gap-2 rounded-lg bg-muted/55 px-3.5 py-3 text-xs leading-relaxed text-muted-foreground">
-            <RssIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <div className="flex items-start gap-2 rounded-2xl border border-(--glass-border) bg-white/40 px-3.5 py-3 text-xs leading-relaxed text-muted-foreground shadow-[inset_0_1px_0_var(--glass-edge)] dark:bg-white/[0.04]">
+            <RssIcon className="mt-0.5 size-4 shrink-0 text-primary/70" aria-hidden />
             <p>
               Reported facts come from the publisher. An AI interpretation, when present, is generated from those facts only, labelled every time, and never
               treated as verified.

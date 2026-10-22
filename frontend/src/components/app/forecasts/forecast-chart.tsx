@@ -13,8 +13,15 @@ import {
   type TooltipContentProps,
 } from "recharts";
 
-import { ChartLegend, TooltipCard, type LegendItem } from "@/components/app/charts/chart-parts";
-import { ANCHOR_COLOR, AXIS_TEXT, GRID_COLOR, SERIES_COLORS } from "@/components/app/charts/palette";
+import {
+  AreaGradient,
+  ChartLegend,
+  TooltipCard,
+  useChartAnimation,
+  useGradientId,
+  type LegendItem,
+} from "@/components/app/charts/chart-parts";
+import { ANCHOR_COLOR, AXIS_TEXT, CURSOR_LINE, GRID_COLOR, GRID_SOFT, SERIES_COLORS } from "@/components/app/charts/palette";
 import { formatDate, formatMoney, formatMonth, formatNumber, formatShortDate, moneyTick } from "@/lib/app/format";
 import type { ChartPoint, Granularity } from "@/lib/app/forecasts-series";
 import type { Frequency, ForecastUnit } from "@/lib/app/forecasts-types";
@@ -78,6 +85,8 @@ export function ForecastChart({
   showActual?: boolean;
 }) {
   const format = unitFormatter(unit, currency);
+  const animation = useChartAnimation(850);
+  const gradientId = useGradientId("forecast");
   const legend: LegendItem[] = [
     ...(showActual ? [{ label: "Actual", color: ANCHOR_COLOR, shape: "line" as const }] : []),
     { label: "Forecast", color: BAND, shape: "line" },
@@ -110,7 +119,11 @@ export function ForecastChart({
       <div style={{ height }} className="min-w-0">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={points} margin={{ top: 16, right: 8, bottom: 0, left: 0 }}>
-            <CartesianGrid vertical={false} stroke={GRID_COLOR} />
+            <defs>
+              <AreaGradient id={`${gradientId}-95`} color={BAND} from={0.13} to={0.05} />
+              <AreaGradient id={`${gradientId}-80`} color={BAND} from={0.26} to={0.12} />
+            </defs>
+            <CartesianGrid vertical={false} {...GRID_SOFT} />
             <XAxis
               dataKey="period"
               tickFormatter={(v: string) => axisLabel(v, period)}
@@ -121,9 +134,9 @@ export function ForecastChart({
               tickMargin={8}
             />
             <YAxis tickFormatter={tickFormatter(unit, currency)} tickLine={false} axisLine={false} tick={TICK} width={68} tickCount={5} domain={["auto", "auto"]} />
-            <Tooltip content={renderTooltip} cursor={{ stroke: AXIS_TEXT, strokeWidth: 1 }} isAnimationActive={false} />
-            <Area dataKey="band95" stroke="none" fill={BAND} fillOpacity={0.09} isAnimationActive={false} connectNulls={false} activeDot={false} />
-            <Area dataKey="band80" stroke="none" fill={BAND} fillOpacity={0.18} isAnimationActive={false} connectNulls={false} activeDot={false} />
+            <Tooltip content={renderTooltip} cursor={CURSOR_LINE} isAnimationActive={false} />
+            <Area dataKey="band95" stroke="none" fill={`url(#${gradientId}-95)`} fillOpacity={1} {...animation} connectNulls={false} activeDot={false} />
+            <Area dataKey="band80" stroke="none" fill={`url(#${gradientId}-80)`} fillOpacity={1} {...animation} connectNulls={false} activeDot={false} />
             {forecastStart ? (
               <ReferenceLine
                 x={forecastStart}
@@ -138,9 +151,10 @@ export function ForecastChart({
                 dataKey="actual"
                 stroke={ANCHOR_COLOR}
                 strokeWidth={period === "day" ? 1.5 : 2}
+                strokeLinecap="round"
                 dot={false}
-                activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--card)" }}
-                isAnimationActive={false}
+                activeDot={{ r: 4.5, strokeWidth: 2, stroke: "var(--card)" }}
+                {...animation}
                 connectNulls={false}
               />
             ) : null}
@@ -149,9 +163,10 @@ export function ForecastChart({
               dataKey="yhat"
               stroke={BAND}
               strokeWidth={period === "day" ? 1.5 : 2}
+              strokeLinecap="round"
               dot={false}
-              activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--card)" }}
-              isAnimationActive={false}
+              activeDot={{ r: 4.5, strokeWidth: 2, stroke: "var(--card)" }}
+              {...animation}
               connectNulls={false}
             />
           </ComposedChart>

@@ -8,14 +8,18 @@ import { toast } from "sonner";
 import { StatusBadge } from "@/components/app/badges";
 import { fieldErrors, FormError, TextField } from "@/components/app/form";
 import { DetailList, Panel } from "@/components/app/page";
+import { Serial } from "@/components/app/print";
 import { SESSION_QUERY_KEY, useOrgId, useSession } from "@/components/app/session-provider";
 import { QueryView, TableSkeleton } from "@/components/app/states";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 import { useApiQuery } from "@/hooks/use-org-query";
 import { api, type ApiError } from "@/lib/api";
 import { formatDate, formatNumber } from "@/lib/app/format";
 import { PERMISSIONS } from "@/lib/app/nav";
 import type { Organization } from "@/lib/app/types";
+
+import { RoleMark } from "./members";
 
 function OrganizationForm({ org }: { org: Organization }) {
   const queryClient = useQueryClient();
@@ -74,43 +78,57 @@ function OrganizationForm({ org }: { org: Organization }) {
 }
 
 export function OrganizationSettings() {
-  const { has } = useSession();
+  const { has, membership } = useSession();
   const orgId = useOrgId();
   const org = useApiQuery<Organization>(`/orgs/${orgId}`);
   return (
     <QueryView query={org} loading={<Panel><TableSkeleton rows={4} columns={2} /></Panel>}>
       {(data) => (
-        <div className="grid gap-6 xl:grid-cols-3">
-          <Panel className="xl:col-span-2" title="Organization profile" description={has(PERMISSIONS.orgManage) ? "Visible to every member" : "Only owners can change these details"}>
-            {has(PERMISSIONS.orgManage) ? (
-              <OrganizationForm key={`${data.name}-${data.industry}-${data.country}-${data.timezone}`} org={data} />
-            ) : (
+        <RevealGroup onMount className="grid gap-6 xl:grid-cols-3" stagger={0.05}>
+          <RevealItem y={12} className="flex min-w-0 flex-col xl:col-span-2">
+            <Panel className="flex-1" title="Organization profile" description={has(PERMISSIONS.orgManage) ? "Visible to every member" : "Only owners can change these details"}>
+              {has(PERMISSIONS.orgManage) ? (
+                <OrganizationForm key={`${data.name}-${data.industry}-${data.country}-${data.timezone}`} org={data} />
+              ) : (
+                <DetailList
+                  items={[
+                    { label: "Name", value: data.name },
+                    { label: "Industry", value: data.industry ?? "Not set" },
+                    { label: "Country", value: data.country ?? "Not set" },
+                    { label: "Time zone", value: data.timezone ?? "Not set" },
+                  ]}
+                />
+              )}
+            </Panel>
+          </RevealItem>
+          <RevealItem y={12} className="flex min-w-0 flex-col">
+            <Panel className="flex-1" title="Account">
               <DetailList
+                className="sm:grid-cols-1"
                 items={[
-                  { label: "Name", value: data.name },
-                  { label: "Industry", value: data.industry ?? "Not set" },
-                  { label: "Country", value: data.country ?? "Not set" },
-                  { label: "Time zone", value: data.timezone ?? "Not set" },
+                  { label: "Status", value: <StatusBadge tone={data.status === "active" ? "good" : "danger"}>{data.status === "active" ? "Active" : "Suspended"}</StatusBadge> },
+                  { label: "Identifier", value: <Serial value={data.slug} chars={40} /> },
+                  { label: "Base currency", value: data.base_currency },
+                  { label: "Members", value: formatNumber(data.member_count ?? null) },
+                  { label: "Companies", value: formatNumber(data.company_count ?? null) },
+                  {
+                    label: "Your role",
+                    value: data.my_role_label ? (
+                      <span className="inline-flex items-center gap-2">
+                        {membership?.role ? <RoleMark role={membership.role} className="size-6" /> : null}
+                        {data.my_role_label}
+                      </span>
+                    ) : (
+                      "—"
+                    ),
+                  },
+                  { label: "Created", value: formatDate(data.created_at) },
+                  ...(data.is_demo ? [{ label: "Type", value: <StatusBadge tone="info">Demo organization (synthetic data)</StatusBadge> }] : []),
                 ]}
               />
-            )}
-          </Panel>
-          <Panel title="Account">
-            <DetailList
-              className="sm:grid-cols-1"
-              items={[
-                { label: "Status", value: <StatusBadge tone={data.status === "active" ? "good" : "danger"}>{data.status === "active" ? "Active" : "Suspended"}</StatusBadge> },
-                { label: "Identifier", value: <span className="font-mono text-xs">{data.slug}</span> },
-                { label: "Base currency", value: data.base_currency },
-                { label: "Members", value: formatNumber(data.member_count ?? null) },
-                { label: "Companies", value: formatNumber(data.company_count ?? null) },
-                { label: "Your role", value: data.my_role_label ?? "—" },
-                { label: "Created", value: formatDate(data.created_at) },
-                ...(data.is_demo ? [{ label: "Type", value: <StatusBadge tone="info">Demo organization (synthetic data)</StatusBadge> }] : []),
-              ]}
-            />
-          </Panel>
-        </div>
+            </Panel>
+          </RevealItem>
+        </RevealGroup>
       )}
     </QueryView>
   );

@@ -5,6 +5,7 @@ import { MoreHorizontalIcon, StoreIcon } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
+import { MintMark } from "@/components/art/ornaments";
 import { ActiveBadge, StatusBadge } from "@/components/app/badges";
 import { DataTable, type Column } from "@/components/app/data-table";
 import { SESSION_QUERY_KEY, useSession } from "@/components/app/session-provider";
@@ -34,6 +35,7 @@ import { useInvalidateOrg, useOrgMutation, useOrgQuery } from "@/hooks/use-org-q
 import { formatDate, formatRelative } from "@/lib/app/format";
 import { PERMISSIONS } from "@/lib/app/nav";
 import type { Member, RolesResponse, Store } from "@/lib/app/types";
+import { cn } from "@/lib/utils";
 
 export function useStores() {
   return useOrgQuery<{ stores: Store[]; scoped: boolean }>("/stores", { staleTime: 5 * 60_000 });
@@ -41,6 +43,11 @@ export function useStores() {
 
 export function useRoles() {
   return useOrgQuery<RolesResponse>("/roles", { staleTime: 10 * 60_000 });
+}
+
+/** Each role wears its own mint mark (seeded by the role), the same wherever the role is named. */
+export function RoleMark({ role, className, tone = "ink" }: { role: string; className?: string; tone?: "ink" | "gold" }) {
+  return <MintMark name={`role:${role}`} tone={tone} className={cn("shrink-0", className)} />;
 }
 
 /** Choose which stores a member can see. Empty means every store. */
@@ -76,12 +83,12 @@ export function StoreScopeDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>Restrict the member to these stores. Leave all unchecked for access to every store.</DialogDescription>
         </DialogHeader>
-        <ul className="max-h-72 space-y-0.5 overflow-y-auto rounded-lg p-1 ring-1 ring-foreground/10">
+        <ul className="max-h-72 space-y-0.5 overflow-y-auto rounded-xl border border-(--glass-border) bg-white/40 p-1 dark:bg-white/[0.04]">
           {stores.map((store) => {
             const id = `${listId}-${store.id}`;
             return (
               <li key={store.id}>
-                <label htmlFor={id} className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
+                <label htmlFor={id} className="press flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors duration-200 hover:bg-foreground/[0.05] dark:hover:bg-white/[0.06]">
                   <Checkbox
                     id={id}
                     checked={selected.includes(store.id)}
@@ -191,7 +198,10 @@ export function MembersSettings() {
                   </SelectContent>
                 </Select>
               ) : (
-                m.role_label
+                <span className="inline-flex items-center gap-2">
+                  <RoleMark role={m.role} className="size-5" />
+                  {m.role_label}
+                </span>
               ),
             sortValue: (m) => m.role_label,
           },

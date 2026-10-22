@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import {
+  Area,
   Bar,
   CartesianGrid,
   Cell,
@@ -15,8 +16,27 @@ import {
   type TooltipContentProps,
 } from "recharts";
 
-import { ChartLegend, TooltipCard } from "@/components/app/charts/chart-parts";
-import { ANCHOR_COLOR, AXIS_TEXT, CONTEXT_COLOR, GRID_COLOR, NEGATIVE_COLOR, POSITIVE_COLOR, SERIES_COLORS } from "@/components/app/charts/palette";
+import { barFill, GrowBar } from "@/components/app/charts/bar-list";
+import {
+  AreaGradient,
+  BarGradient,
+  ChartLegend,
+  TooltipCard,
+  useChartAnimation,
+  useGradientId,
+} from "@/components/app/charts/chart-parts";
+import {
+  ANCHOR_COLOR,
+  AXIS_TEXT,
+  CONTEXT_COLOR,
+  CURSOR_BAND,
+  CURSOR_LINE,
+  GRID_COLOR,
+  GRID_SOFT,
+  NEGATIVE_COLOR,
+  POSITIVE_COLOR,
+  SERIES_COLORS,
+} from "@/components/app/charts/palette";
 import { periodAxisLabel, periodTitle } from "@/components/app/sections/sales";
 import { cleanAmount, formatDelta, isNum } from "@/lib/app/decision-lab-format";
 import type { SensitivityRow } from "@/lib/app/decision-lab-types";
@@ -45,6 +65,8 @@ export function ScenarioLinesChart({
   ariaLabel: string;
   height?: number;
 }) {
+  const animation = useChartAnimation();
+  const gradientId = useGradientId("dl-lines");
   const money = (v: number) => formatDelta(v, currency).replace(/^\+/, "");
   function renderTooltip(props: TooltipContentProps) {
     if (!props.active || !props.payload?.length) return null;
@@ -72,12 +94,43 @@ export function ScenarioLinesChart({
       <div style={{ height }} className="min-w-0">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 6, right: 8, bottom: 0, left: 0 }}>
-            <CartesianGrid vertical={false} stroke={GRID_COLOR} />
+            <defs>
+              <AreaGradient id={gradientId} color={SERIES_COLORS[0]} from={0.22} />
+            </defs>
+            <CartesianGrid vertical={false} {...GRID_SOFT} />
             <XAxis dataKey="month" tickFormatter={monthLabel} tickLine={false} axisLine={{ stroke: GRID_COLOR }} tick={TICK} minTickGap={12} tickMargin={8} />
             <YAxis tickFormatter={moneyTick(currency)} tickLine={false} axisLine={false} tick={TICK} width={68} tickCount={5} />
-            <Tooltip content={renderTooltip} cursor={{ stroke: AXIS_TEXT, strokeWidth: 1 }} isAnimationActive={false} />
-            <Line type="monotone" dataKey="baseline" stroke={CONTEXT_COLOR} strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--card)" }} isAnimationActive={false} />
-            <Line type="monotone" dataKey="scenario" stroke={SERIES_COLORS[0]} strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--card)" }} isAnimationActive={false} />
+            <Tooltip content={renderTooltip} cursor={CURSOR_LINE} isAnimationActive={false} />
+            <Area
+              type="monotone"
+              dataKey="scenario"
+              stroke="none"
+              fill={`url(#${gradientId})`}
+              fillOpacity={1}
+              legendType="none"
+              tooltipType="none"
+              activeDot={false}
+              {...animation}
+            />
+            <Line
+              type="monotone"
+              dataKey="baseline"
+              stroke={CONTEXT_COLOR}
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 4.5, strokeWidth: 2, stroke: "var(--card)" }}
+              {...animation}
+            />
+            <Line
+              type="monotone"
+              dataKey="scenario"
+              stroke={SERIES_COLORS[0]}
+              strokeWidth={2.25}
+              strokeLinecap="round"
+              dot={false}
+              activeDot={{ r: 4.5, strokeWidth: 2, stroke: "var(--card)" }}
+              {...animation}
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -101,6 +154,8 @@ export function DeltaBarsChart({
   favourableWhenUp?: boolean;
   height?: number;
 }) {
+  const animation = useChartAnimation();
+  const gradientId = useGradientId("dl-delta");
   const cleaned = data.map((d) => ({ ...d, delta: cleanAmount(d.delta) }));
   function renderTooltip(props: TooltipContentProps) {
     if (!props.active || !props.payload?.length) return null;
@@ -125,7 +180,12 @@ export function DeltaBarsChart({
       <div style={{ height }} className="min-w-0">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={cleaned} margin={{ top: 6, right: 8, bottom: 0, left: 0 }} barCategoryGap="28%">
-            <CartesianGrid vertical={false} stroke={GRID_COLOR} />
+            <defs>
+              <BarGradient id={`${gradientId}-up`} color={POSITIVE_COLOR} />
+              <BarGradient id={`${gradientId}-down`} color={NEGATIVE_COLOR} />
+              <BarGradient id={`${gradientId}-flat`} color={CONTEXT_COLOR} />
+            </defs>
+            <CartesianGrid vertical={false} {...GRID_SOFT} />
             <XAxis dataKey="month" tickFormatter={monthLabel} tickLine={false} axisLine={{ stroke: GRID_COLOR }} tick={TICK} minTickGap={12} tickMargin={8} />
             <YAxis
               tickFormatter={moneyTick(currency)}
@@ -137,12 +197,12 @@ export function DeltaBarsChart({
               domain={[(min: number) => Math.min(0, min), (max: number) => Math.max(0, max)]}
             />
             <ReferenceLine y={0} stroke={AXIS_TEXT} strokeOpacity={0.6} />
-            <Tooltip content={renderTooltip} cursor={{ fill: "var(--muted)", fillOpacity: 0.6 }} isAnimationActive={false} />
-            <Bar dataKey="delta" maxBarSize={24} radius={[4, 4, 0, 0]} isAnimationActive={false}>
+            <Tooltip content={renderTooltip} cursor={CURSOR_BAND} isAnimationActive={false} />
+            <Bar dataKey="delta" maxBarSize={24} radius={[5, 5, 0, 0]} {...animation}>
               {cleaned.map((d) => {
                 const value = d.delta ?? 0;
                 const good = value === 0 ? null : value > 0 === favourableWhenUp;
-                return <Cell key={d.month} fill={good === null ? CONTEXT_COLOR : good ? POSITIVE_COLOR : NEGATIVE_COLOR} />;
+                return <Cell key={d.month} fill={`url(#${gradientId}-${good === null ? "flat" : good ? "up" : "down"})`} />;
               })}
             </Bar>
           </ComposedChart>
@@ -174,6 +234,8 @@ export function CumulativeCashChart({
   currency: string;
   height?: number;
 }) {
+  const animation = useChartAnimation(900);
+  const gradientId = useGradientId("dl-cash");
   const data = months.map((month, i) => ({ month, index: i + 1, value: cleanAmount(values[i] ?? null) }));
   const payback = paybackMonth && paybackMonth >= 1 && paybackMonth <= months.length ? months[paybackMonth - 1] : null;
   function renderTooltip(props: TooltipContentProps) {
@@ -192,7 +254,10 @@ export function CumulativeCashChart({
       <div style={{ height }} className="min-w-0">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 18, right: 12, bottom: 0, left: 0 }}>
-            <CartesianGrid vertical={false} stroke={GRID_COLOR} />
+            <defs>
+              <AreaGradient id={gradientId} color={ANCHOR_COLOR} from={0.18} />
+            </defs>
+            <CartesianGrid vertical={false} {...GRID_SOFT} />
             <XAxis dataKey="month" tickFormatter={monthLabel} tickLine={false} axisLine={{ stroke: GRID_COLOR }} tick={TICK} minTickGap={12} tickMargin={8} />
             <YAxis tickFormatter={moneyTick(currency)} tickLine={false} axisLine={false} tick={TICK} width={68} tickCount={5} />
             <ReferenceLine y={0} stroke={AXIS_TEXT} strokeOpacity={0.6} />
@@ -204,15 +269,27 @@ export function CumulativeCashChart({
                 label={{ value: `Payback · month ${paybackMonth}`, position: "insideTopLeft", fill: "var(--foreground)", fontSize: 11 }}
               />
             ) : null}
-            <Tooltip content={renderTooltip} cursor={{ stroke: AXIS_TEXT, strokeWidth: 1 }} isAnimationActive={false} />
+            <Tooltip content={renderTooltip} cursor={CURSOR_LINE} isAnimationActive={false} />
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke="none"
+              fill={`url(#${gradientId})`}
+              fillOpacity={1}
+              legendType="none"
+              tooltipType="none"
+              activeDot={false}
+              {...animation}
+            />
             <Line
               type="monotone"
               dataKey="value"
               stroke={ANCHOR_COLOR}
               strokeWidth={2}
+              strokeLinecap="round"
               dot={{ r: 3, strokeWidth: 2, stroke: "var(--card)", fill: ANCHOR_COLOR }}
               activeDot={{ r: 5, strokeWidth: 2, stroke: "var(--card)" }}
-              isAnimationActive={false}
+              {...animation}
             />
           </ComposedChart>
         </ResponsiveContainer>
@@ -263,14 +340,17 @@ export function Tornado({ rows, currency, baseLabel, footer }: { rows: TornadoRo
           <span className="text-right">Higher outcome</span>
         </div>
       </div>
-      <ul className="space-y-2.5">
-        {rows.map((r) => {
+      <ul className="space-y-1">
+        {rows.map((r, index) => {
           const segments = [
             { key: "low", delta: r.lowDelta, label: "Low case" },
             { key: "high", delta: r.highDelta, label: "High case" },
           ];
           return (
-            <li key={r.parameter} className="grid grid-cols-1 items-center gap-x-3 gap-y-1 sm:grid-cols-[minmax(7rem,14rem)_minmax(0,1fr)]">
+            <li
+              key={r.parameter}
+              className="-mx-2 grid grid-cols-1 items-center gap-x-3 gap-y-1 rounded-lg px-2 py-1 transition-colors duration-200 hover:bg-white/50 sm:grid-cols-[minmax(7rem,14rem)_minmax(0,1fr)] dark:hover:bg-white/[0.04]"
+            >
               <span className="text-[0.8125rem] leading-snug">{r.parameter}</span>
               <div className="relative h-7" aria-hidden>
                 <span className="absolute top-0 bottom-0 left-1/2 w-px bg-foreground/35" />
@@ -279,11 +359,16 @@ export function Tornado({ rows, currency, baseLabel, footer }: { rows: TornadoRo
                   const width = Math.max(pct(s.delta), 0.6);
                   const left = s.delta < 0 ? 50 - width : 50;
                   return (
-                    <span
-                      key={s.key}
-                      className={cn("absolute top-1/2 h-3 -translate-y-1/2", s.delta < 0 ? "rounded-l-[4px]" : "rounded-r-[4px]")}
-                      style={{ left: `${left}%`, width: `${width}%`, background: s.delta < 0 ? NEGATIVE_COLOR : POSITIVE_COLOR }}
-                    />
+                    <div key={s.key} className="absolute top-1/2 h-3 -translate-y-1/2" style={{ left: `${left}%`, width: `${width}%` }}>
+                      <GrowBar
+                        className={cn("h-3", s.delta < 0 ? "origin-right rounded-l-[5px]" : "origin-left rounded-r-[5px]")}
+                        delay={Math.min(index, 12) * 0.04}
+                        style={{
+                          width: "100%",
+                          background: barFill(s.delta < 0 ? NEGATIVE_COLOR : POSITIVE_COLOR),
+                        }}
+                      />
+                    </div>
                   );
                 })}
               </div>

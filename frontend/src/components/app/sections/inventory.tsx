@@ -3,6 +3,7 @@
 import { TriangleAlertIcon } from "lucide-react";
 
 import { RiskBadge, StatusBadge } from "@/components/app/badges";
+import { barFill, GrowBar } from "@/components/app/charts/bar-list";
 import { useChartView } from "@/components/app/charts/chart-parts";
 import { SERIES_COLORS } from "@/components/app/charts/palette";
 import { Sparkline } from "@/components/app/charts/sparkline";
@@ -280,11 +281,14 @@ export function SupplierLeadTimes({ suppliers, currency }: { suppliers: Supplier
         <ul className="space-y-3" aria-label="Average lead time by supplier against contracted lead time">
           {[...suppliers]
             .sort((a, b) => (b.avg_lead_days ?? 0) - (a.avg_lead_days ?? 0))
-            .map((s) => {
+            .map((s, index) => {
               const avg = s.avg_lead_days;
               const contracted = s.contracted_lead_days;
               return (
-                <li key={s.supplier_code} className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-x-3 gap-y-1">
+                <li
+                  key={s.supplier_code}
+                  className="-mx-2 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-x-3 gap-y-1 rounded-lg px-2 py-1 transition-colors duration-200 hover:bg-white/50 dark:hover:bg-white/[0.04]"
+                >
                   <p className="min-w-0 truncate text-[0.8125rem] font-medium">
                     {s.supplier}
                     {s.alert ? (
@@ -297,11 +301,12 @@ export function SupplierLeadTimes({ suppliers, currency }: { suppliers: Supplier
                     <span className="font-semibold">{formatDays(avg)}</span>
                     <span className="ml-1.5 text-xs text-muted-foreground">contract {formatDays(contracted, 0)}</span>
                   </p>
-                  <div className="relative col-span-2 h-2" aria-hidden>
+                  <div className="relative col-span-2 h-2 rounded-full bg-foreground/[0.04] dark:bg-white/[0.05]" aria-hidden>
                     {avg !== null ? (
-                      <div
-                        className="h-2 rounded-r-[4px]"
-                        style={{ width: `${(avg / maxLead) * 100}%`, background: SERIES_COLORS[0] }}
+                      <GrowBar
+                        className="h-2 rounded-full"
+                        delay={Math.min(index, 10) * 0.04}
+                        style={{ width: `${(avg / maxLead) * 100}%`, background: barFill(SERIES_COLORS[0]) }}
                       />
                     ) : null}
                     {contracted !== null ? (
@@ -320,7 +325,7 @@ export function SupplierLeadTimes({ suppliers, currency }: { suppliers: Supplier
       )}
       <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
         <li className="flex items-center gap-1.5">
-          <span aria-hidden className="h-2 w-3 rounded-r-[3px]" style={{ background: SERIES_COLORS[0] }} /> Average received lead time
+          <span aria-hidden className="h-2 w-3 rounded-full" style={{ background: SERIES_COLORS[0] }} /> Average received lead time
         </li>
         <li className="flex items-center gap-1.5">
           <span aria-hidden className="h-3 w-0.5 rounded-full bg-foreground" /> Contracted lead time

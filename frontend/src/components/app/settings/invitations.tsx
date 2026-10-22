@@ -9,6 +9,7 @@ import { DataTable, type Column } from "@/components/app/data-table";
 import { CopyButton, fieldErrors, FormError, SelectField, TextField } from "@/components/app/form";
 import { Panel } from "@/components/app/page";
 import { EmptyState, Notice, QueryView, TableSkeleton } from "@/components/app/states";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +26,7 @@ import { useInvalidateOrg, useOrgMutation, useOrgQuery } from "@/hooks/use-org-q
 import { formatDate, formatDateTime } from "@/lib/app/format";
 import type { CreatedInvitation, Invitation } from "@/lib/app/types";
 
-import { StoreScopeDialog, storeScopeText, useRoles, useStores } from "./members";
+import { RoleMark, StoreScopeDialog, storeScopeText, useRoles, useStores } from "./members";
 
 const STATUS_TONE: Record<string, "good" | "neutral" | "danger" | "warning" | "info"> = {
   pending: "info",
@@ -132,7 +133,7 @@ function InviteForm() {
             automatically.
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <code className="min-w-0 flex-1 rounded-md bg-background px-2.5 py-1.5 font-mono text-xs break-all text-foreground ring-1 ring-foreground/10">
+            <code className="min-w-0 flex-1 rounded-lg bg-white/70 px-2.5 py-1.5 font-mono text-xs break-all text-foreground ring-1 ring-(--glass-border) dark:bg-white/[0.06]">
               {link}
             </code>
             <CopyButton value={link} label="Copy link" />
@@ -169,7 +170,17 @@ export function InvitationsSettings() {
   });
   const columns: Column<Invitation>[] = [
     { key: "email", header: "Email", cell: (i) => <span className="font-medium">{i.email}</span>, sortValue: (i) => i.email },
-    { key: "role", header: "Role", cell: (i) => i.role_label, sortValue: (i) => i.role_label },
+    {
+      key: "role",
+      header: "Role",
+      cell: (i) => (
+        <span className="inline-flex items-center gap-2">
+          <RoleMark role={i.role} className="size-5" />
+          {i.role_label}
+        </span>
+      ),
+      sortValue: (i) => i.role_label,
+    },
     { key: "scope", header: "Stores", cell: (i) => storeScopeText(i.store_scope, stores.data?.stores ?? []) },
     {
       key: "status",
@@ -207,25 +218,29 @@ export function InvitationsSettings() {
     },
   ];
   return (
-    <div className="grid gap-6 xl:grid-cols-5">
-      <Panel className="xl:col-span-2" title="Invite someone" description="They join with the role you choose once they accept the link">
-        <InviteForm />
-      </Panel>
-      <Panel className="xl:col-span-3" title="Invitations">
-        <QueryView query={invitations} loading={<TableSkeleton rows={4} columns={5} />}>
-          {(data) => (
-            <DataTable
-              caption="Invitations"
-              columns={columns}
-              rows={data.invitations}
-              rowKey={(i) => i.id}
-              defaultSort={{ key: "created", dir: "desc" }}
-              dense
-              empty={<EmptyState compact icon={MailIcon} title="No invitations yet" description="Invitations you create appear here with their status." />}
-            />
-          )}
-        </QueryView>
-      </Panel>
-    </div>
+    <RevealGroup onMount className="grid gap-6 xl:grid-cols-5" stagger={0.05}>
+      <RevealItem y={12} className="flex min-w-0 flex-col xl:col-span-2">
+        <Panel className="flex-1" title="Invite someone" description="They join with the role you choose once they accept the link">
+          <InviteForm />
+        </Panel>
+      </RevealItem>
+      <RevealItem y={12} className="flex min-w-0 flex-col xl:col-span-3">
+        <Panel className="flex-1" title="Invitations">
+          <QueryView query={invitations} loading={<TableSkeleton rows={4} columns={5} />}>
+            {(data) => (
+              <DataTable
+                caption="Invitations"
+                columns={columns}
+                rows={data.invitations}
+                rowKey={(i) => i.id}
+                defaultSort={{ key: "created", dir: "desc" }}
+                dense
+                empty={<EmptyState compact icon={MailIcon} title="No invitations yet" description="Invitations you create appear here with their status." />}
+              />
+            )}
+          </QueryView>
+        </Panel>
+      </RevealItem>
+    </RevealGroup>
   );
 }

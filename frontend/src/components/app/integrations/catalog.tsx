@@ -4,10 +4,13 @@ import { ExternalLinkIcon, FileSearchIcon, PlugIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { MintMark } from "@/components/art/ornaments";
 import { AvailabilityBadge, StatusBadge, SyntheticFeedBadge, VerificationBadge } from "@/components/app/badges";
 import { PermissionGate } from "@/components/app/access";
 import { NoteList } from "@/components/app/page";
 import { EmptyState } from "@/components/app/states";
+import { SpotlightCard } from "@/components/kit/spotlight-card";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -18,6 +21,7 @@ import { formatDate, humanize } from "@/lib/app/format";
 import { categoryLabel, methodLabel } from "@/lib/app/labels";
 import { PERMISSIONS } from "@/lib/app/nav";
 import type { CatalogEntry, EntitySpec, ResearchEvidence, VendorResearch } from "@/lib/app/types";
+import { cn } from "@/lib/utils";
 
 export function useCatalog() {
   return useOrgQuery<{ entries: CatalogEntry[] }>("/integrations/catalog", { staleTime: 10 * 60_000 });
@@ -25,6 +29,11 @@ export function useCatalog() {
 
 export function useEntities() {
   return useOrgQuery<{ entities: EntitySpec[]; authority_fact_types: string[] }>("/integrations/entities", { staleTime: 10 * 60_000 });
+}
+
+/** Each provider wears its own mint mark, the same in the catalog and on every connection made with it. */
+export function ProviderMark({ provider, className }: { provider: string; className?: string }) {
+  return <MintMark name={`provider:${provider}`} className={cn("shrink-0", className)} />;
 }
 
 /** Providers a member can set up: implemented, not planned, and not the built-in synthetic feed. */
@@ -114,7 +123,7 @@ export function ResearchDetails({ research }: { research: VendorResearch }) {
         <NoteList notes={[caps?.public_api?.notes, caps?.webhooks?.notes].filter((n): n is string => Boolean(n))} />
       ) : null}
       {research.reported_association ? (
-        <section className="space-y-2 rounded-lg bg-muted/60 p-3">
+        <section className="space-y-2 rounded-xl border border-(--glass-border) bg-white/40 p-3 dark:bg-white/[0.04]">
           <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold">
             Reported association
             <VerificationBadge status={research.reported_association.verification_status} />
@@ -158,10 +167,12 @@ export function ResearchDialog({ name, research }: { name: string; research: Ven
 function CatalogCard({ entry }: { entry: CatalogEntry }) {
   const connectable = isConnectable(entry);
   return (
-    <li className="flex min-w-0 flex-col gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-      <div className="flex items-start justify-between gap-3">
+    <RevealItem as="li" y={12} className="flex min-w-0">
+      <SpotlightCard className="lift flex w-full min-w-0 flex-col gap-3 rounded-2xl glass p-4">
+      <div className="flex items-start gap-3">
+        <ProviderMark provider={entry.key} className="size-10" />
         <div className="min-w-0">
-          <h3 className="font-heading text-[0.9375rem] leading-snug font-semibold">{entry.name}</h3>
+          <h3 className="font-display text-[1.0625rem] leading-snug font-semibold tracking-[-0.01em]">{entry.name}</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">{entry.categories.map(categoryLabel).join(", ")}</p>
         </div>
       </div>
@@ -179,7 +190,7 @@ function CatalogCard({ entry }: { entry: CatalogEntry }) {
       ) : null}
       {entry.activation_requirements.length ? (
         <details className="group text-[0.8125rem]">
-          <summary className="cursor-pointer font-medium outline-none hover:underline focus-visible:underline">
+          <summary className="cursor-pointer font-medium transition-colors duration-200 outline-none hover:text-primary focus-visible:underline">
             Activation requirements ({entry.activation_requirements.length})
           </summary>
           <NoteList className="mt-2" notes={entry.activation_requirements} />
@@ -203,7 +214,8 @@ function CatalogCard({ entry }: { entry: CatalogEntry }) {
           </span>
         ) : null}
       </div>
-    </li>
+      </SpotlightCard>
+    </RevealItem>
   );
 }
 
@@ -253,7 +265,7 @@ export function CatalogBrowser({ entries }: { entries: CatalogEntry[] }) {
             placeholder="Search by name or capability"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-background lg:w-72"
+            className="w-full bg-sheet lg:w-72"
           />
         </div>
       </div>
@@ -266,11 +278,11 @@ export function CatalogBrowser({ entries }: { entries: CatalogEntry[] }) {
               <h2 id="catalog-available" className="mb-3 font-heading text-base font-semibold">
                 Ready to connect
               </h2>
-              <ul className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+              <RevealGroup as="ul" stagger={0.05} className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
                 {available.map((entry) => (
                   <CatalogCard key={entry.key} entry={entry} />
                 ))}
-              </ul>
+              </RevealGroup>
             </section>
           ) : null}
           {researched.length ? (
@@ -281,11 +293,11 @@ export function CatalogBrowser({ entries }: { entries: CatalogEntry[] }) {
               <p className="mt-0.5 mb-3 text-sm text-muted-foreground">
                 Profiles with public evidence. Connectors for these are planned; until then, approved exports can be imported as files.
               </p>
-              <ul className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+              <RevealGroup as="ul" stagger={0.05} className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
                 {researched.map((entry) => (
                   <CatalogCard key={entry.key} entry={entry} />
                 ))}
-              </ul>
+              </RevealGroup>
             </section>
           ) : null}
         </>

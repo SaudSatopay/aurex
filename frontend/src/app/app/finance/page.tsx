@@ -14,6 +14,7 @@ import { ChangeIndicator, DefinitionButton, KpiLedger } from "@/components/app/k
 import { NoteList, PageHeader, Panel, SectionHeading } from "@/components/app/page";
 import { CashPanel, expenseLabel, ExpenseBreakdownPanel } from "@/components/app/sections/finance";
 import { ChartSkeleton, EmptyState, ErrorState, Notice, QueryView, TableSkeleton } from "@/components/app/states";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -188,27 +189,32 @@ function PnlStatement({ data, dimmed }: { data: FinancialReport; dimmed: boolean
         />
       }
     >
-      <div className="relative w-full overflow-x-auto rounded-lg ring-1 ring-foreground/8" tabIndex={0} role="region" aria-label="Profit and loss statement">
-        <table className="w-full border-collapse text-[0.8125rem]">
+      <div
+        className="relative w-full overflow-x-auto rounded-xl bg-white/30 ring-1 ring-(--glass-border) outline-none focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-white/[0.02]"
+        tabIndex={0}
+        role="region"
+        aria-label="Profit and loss statement"
+      >
+        <table className="w-full border-collapse text-[0.8125rem] tabular-nums">
           <caption className="sr-only">Profit and loss statement</caption>
-          <thead className="bg-muted/60">
-            <tr className="border-b">
-              <th scope="col" className="sticky left-0 z-[1] min-w-[11rem] bg-muted px-3 py-2 text-left font-medium text-muted-foreground">
+          <thead className="bg-white/55 backdrop-blur-md dark:bg-white/[0.04]">
+            <tr className="border-b border-(--glass-border)">
+              <th scope="col" className="sticky left-0 z-[1] min-w-[11rem] bg-(--glass-bg-strong) px-3 py-2 text-left text-xs font-medium text-muted-foreground backdrop-blur-xl">
                 Line item
               </th>
               {months.map((m) => (
-                <th key={m.month} scope="col" className="px-3 py-2 text-right font-medium whitespace-nowrap text-muted-foreground">
+                <th key={m.month} scope="col" className="px-3 py-2 text-right text-xs font-medium whitespace-nowrap text-muted-foreground">
                   {formatMonth(m.month)}
                   {m.partial ? <span className="block text-[0.6875rem] font-normal">partial</span> : null}
                 </th>
               ))}
-              <th scope="col" className="border-l px-3 py-2 text-right font-semibold whitespace-nowrap text-foreground">
+              <th scope="col" className="border-l border-(--glass-border) px-3 py-2 text-right text-xs font-semibold whitespace-nowrap text-foreground">
                 Period total
               </th>
-              <th scope="col" className="px-3 py-2 text-right font-medium whitespace-nowrap text-muted-foreground">
+              <th scope="col" className="px-3 py-2 text-right text-xs font-medium whitespace-nowrap text-muted-foreground">
                 Same period last year
               </th>
-              <th scope="col" className="px-3 py-2 text-right font-medium whitespace-nowrap text-muted-foreground">
+              <th scope="col" className="px-3 py-2 text-right text-xs font-medium whitespace-nowrap text-muted-foreground">
                 Change
               </th>
             </tr>
@@ -223,16 +229,16 @@ function PnlStatement({ data, dimmed }: { data: FinancialReport; dimmed: boolean
                 <tr
                   key={line.key}
                   className={cn(
-                    "border-b last:border-b-0",
-                    strong && "bg-muted/30",
-                    line.kind === "total" && "border-t-2 border-t-foreground/20",
+                    "border-b border-(--glass-border) transition-colors duration-200 ease-(--ease-out) last:border-b-0 hover:bg-primary/[0.035] dark:hover:bg-white/[0.035]",
+                    strong && "bg-primary/[0.03] dark:bg-white/[0.03]",
+                    line.kind === "total" && "border-t-2 border-t-foreground/15",
                   )}
                 >
                   <th
                     scope="row"
                     className={cn(
-                      "sticky left-0 z-[1] bg-card px-3 py-2 text-left font-normal whitespace-nowrap",
-                      strong && "bg-[color-mix(in_oklch,var(--muted)_30%,var(--card))] font-semibold",
+                      "sticky left-0 z-[1] bg-(--glass-bg-strong) px-3 py-2 text-left font-normal whitespace-nowrap backdrop-blur-xl",
+                      strong && "font-semibold",
                       line.kind === "ratio" && "text-muted-foreground italic",
                       line.kind === "detail" && "pl-7 text-muted-foreground",
                     )}
@@ -262,7 +268,7 @@ function PnlStatement({ data, dimmed }: { data: FinancialReport; dimmed: boolean
                       ) : null}
                     </td>
                   ))}
-                  <td className={cn("border-l px-3 py-2 text-right tabular whitespace-nowrap", strong ? "font-semibold" : "font-medium")}>
+                  <td className={cn("border-l border-(--glass-border) px-3 py-2 text-right tabular whitespace-nowrap", strong ? "font-semibold" : "font-medium")}>
                     {cellValue(line, data.total, currency)}
                   </td>
                   <td className="px-3 py-2 text-right whitespace-nowrap text-muted-foreground tabular">
@@ -382,9 +388,10 @@ function BudgetSection() {
         ];
         return (
           <div className="space-y-6">
-            <div className="grid gap-6 xl:grid-cols-5">
+            <RevealGroup className="grid gap-6 xl:grid-cols-5" stagger={0.05}>
+              <RevealItem className="flex min-w-0 xl:col-span-3" y={12}>
               <Panel
-                className="xl:col-span-3"
+                className="w-full"
                 title="Totals for the period"
                 description={data.period.label}
                 dimmed={query.isPlaceholderData}
@@ -414,8 +421,10 @@ function BudgetSection() {
               >
                 <DataTable caption="Budget against actual by line" columns={columns} rows={summary} rowKey={(r) => r.metric} dense />
               </Panel>
+              </RevealItem>
+              <RevealItem className="flex min-w-0 xl:col-span-2" y={12}>
               <Panel
-                className="xl:col-span-2"
+                className="w-full"
                 title="Net sales against budget"
                 description="Actual by month (columns) with the budget (line), one scale"
                 actions={toggle}
@@ -447,7 +456,8 @@ function BudgetSection() {
                   />
                 )}
               </Panel>
-            </div>
+              </RevealItem>
+            </RevealGroup>
             <Panel title="Month by month" description="Every budget line compared with its actual">
               <DataTable
                 caption="Budget against actual by month and line"
@@ -534,14 +544,17 @@ function ExpenseSection() {
         ];
         return (
           <div className="space-y-6">
-            <div className="grid gap-6 xl:grid-cols-2">
+            <RevealGroup className="grid gap-6 xl:grid-cols-2" stagger={0.05}>
+              <RevealItem className="flex min-w-0 [&>*]:w-full" y={12}>
               <ExpenseBreakdownPanel
                 expenses={data.categories.map((c) => ({ category: c.category, amount: c.amount }))}
                 currency={currency}
                 dimmed={query.isPlaceholderData}
                 description={`${formatMoney(data.total, currency, { compact: true })} in total for the period`}
               />
-              <Panel title="Monthly expenses" description="Operating expenses and items below EBITDA, by ledger month" actions={toggle} dimmed={query.isPlaceholderData}>
+              </RevealItem>
+              <RevealItem className="flex min-w-0" y={12}>
+              <Panel className="w-full" title="Monthly expenses" description="Operating expenses and items below EBITDA, by ledger month" actions={toggle} dimmed={query.isPlaceholderData}>
                 {view === "chart" ? (
                   <TrendChart
                     ariaLabel="Monthly expenses"
@@ -560,7 +573,8 @@ function ExpenseSection() {
                   <DataTable caption="Expenses by category" columns={categoryColumns} rows={data.categories} rowKey={(r) => r.category} defaultSort={{ key: "amount", dir: "desc" }} dense />
                 )}
               </Panel>
-            </div>
+              </RevealItem>
+            </RevealGroup>
             <Panel
               title="Expense anomalies"
               description="Months that stand out against the same store and category’s own history"

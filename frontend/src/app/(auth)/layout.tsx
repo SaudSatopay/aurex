@@ -1,15 +1,24 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { Rosette } from "@/components/art/rosette";
 import { AurexLogo } from "@/components/brand/logo";
 import { Container } from "@/components/marketing/primitives";
 import { SkipLink } from "@/components/marketing/site-header";
 
+/*
+ * Sign-in and sign-up are printed on the same ink plate as the hero: the rosette is engraved behind
+ * the form, and the form itself is a paper note that is struck into place (see AuthCard).
+ */
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-1 flex-col bg-muted/60">
+    <div className="relative isolate flex flex-1 flex-col overflow-hidden bg-plate text-paper">
+      <div aria-hidden className="aurora-hero" />
+      <div aria-hidden className="absolute top-10 left-1/2 size-[64rem] -translate-x-1/2 opacity-35 sm:top-0 lg:size-[78rem]">
+        <Rosette delay={0} />
+      </div>
       <SkipLink />
-      <header className="border-b border-white/10 bg-navy-900 text-white">
+      <header className="border-b border-gold-rule/60 bg-plate/55 backdrop-blur-2xl backdrop-saturate-150">
         <Container className="flex h-16 items-center justify-between gap-4">
           <Link
             href="/"
@@ -20,16 +29,16 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           </Link>
           <Link
             href="/security"
-            className="inline-flex h-9 items-center rounded-md px-3 text-sm font-medium text-navy-200 transition-colors outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-sky-accent"
+            className="press inline-flex h-9 items-center rounded-full px-4 text-sm font-medium text-paper/75 outline-none hover:bg-gold/10 hover:text-paper focus-visible:ring-2 focus-visible:ring-gold"
           >
             How we protect accounts
           </Link>
         </Container>
       </header>
-      <main id="main" tabIndex={-1} className="flex-1 px-4 py-12 outline-none sm:py-16">
-        <div className="mx-auto w-full max-w-[28rem]">{children}</div>
+      <main id="main" tabIndex={-1} className="relative flex-1 px-4 py-12 outline-none sm:py-20">
+        <div className="mx-auto w-full max-w-[46rem]">{children}</div>
       </main>
-      <footer className="px-4 pb-10 text-center text-xs leading-relaxed text-muted-foreground">
+      <footer className="relative px-4 pb-10 text-center text-xs leading-relaxed text-paper/70">
         NovaMart is a fictional retailer used to demonstrate AUREX. All of its data is synthetic.
       </footer>
     </div>

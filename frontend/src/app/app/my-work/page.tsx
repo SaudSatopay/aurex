@@ -9,7 +9,9 @@ import { KpiLedger } from "@/components/app/kpi";
 import { PageHeader, Panel, SectionHeading } from "@/components/app/page";
 import { SalesTrendPanel } from "@/components/app/sections/sales";
 import { useSession } from "@/components/app/session-provider";
+import { RoleMark } from "@/components/app/settings/members";
 import { EmptyState, ErrorState, SkeletonBlock, TableSkeleton } from "@/components/app/states";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { useFilterOptions } from "@/hooks/use-filter-options";
 import { useFilters } from "@/hooks/use-filters";
 import { useOrgQuery } from "@/hooks/use-org-query";
@@ -42,7 +44,14 @@ function MyWork() {
             ? `Hello ${firstName}. Sales for ${storeNames.join(", ")}, and the tasks assigned to you.`
             : `Hello ${firstName}. Your sales summary and the tasks assigned to you.`
         }
-        meta={membership ? <span>{membership.role_label}</span> : null}
+        meta={
+          membership ? (
+            <span className="inline-flex items-center gap-2">
+              <RoleMark role={membership.role} className="size-6" />
+              {membership.role_label}
+            </span>
+          ) : null
+        }
       />
       <div className="space-y-6">
         {has(PERMISSIONS.salesRead) ? (
@@ -70,7 +79,7 @@ function SalesSection() {
   if (query.isPending) {
     return (
       <div className="space-y-6">
-        <SkeletonBlock className="h-28 w-full" />
+        <SkeletonBlock className="h-28 w-full rounded-2xl" />
         <Panel>
           <TableSkeleton rows={6} columns={4} />
         </Panel>
@@ -97,16 +106,20 @@ function SalesSection() {
           columns="grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4"
         />
       </section>
-      <div className="grid gap-6 xl:grid-cols-3">
+      <RevealGroup className="grid gap-6 xl:grid-cols-3" stagger={0.05}>
+        <RevealItem className="flex min-w-0 xl:col-span-2" y={12}>
         <SalesTrendPanel
-          className="xl:col-span-2"
+          className="w-full"
           title={`Net sales, ${data.period.label}`}
           series={data.series}
           granularity={data.period.granularity}
           currency={currency}
           dimmed={query.isPlaceholderData}
         />
+        </RevealItem>
+        <RevealItem className="flex min-w-0" y={12}>
         <Panel
+          className="w-full"
           title="Last 7 days"
           description={`Daily net sales up to ${formatDate(data.data_end)}`}
           footer={data.transactions !== null ? `${formatNumber(data.transactions, { currency })} transactions in the period` : undefined}
@@ -128,7 +141,8 @@ function SalesSection() {
             />
           )}
         </Panel>
-      </div>
+        </RevealItem>
+      </RevealGroup>
     </div>
   );
 }
@@ -155,7 +169,7 @@ function WorkList({ items, kind }: { items: WorkItem[]; kind: "task" | "notifica
     );
   }
   return (
-    <ul className="divide-y">
+    <ul className="-mx-2 space-y-0.5">
       {items.map((item, index) => {
         const title = text(item, "title", "name", "summary", "message") ?? "Untitled";
         const detail = text(item, "description", "body", "detail");
@@ -163,7 +177,10 @@ function WorkList({ items, kind }: { items: WorkItem[]; kind: "task" | "notifica
         const due = text(item, "due_date", "due_at");
         const created = text(item, "created_at", "sent_at");
         return (
-          <li key={String(item.id ?? index)} className="flex items-start justify-between gap-3 py-3">
+          <li
+            key={String(item.id ?? index)}
+            className="flex items-start justify-between gap-3 rounded-lg px-2 py-3 transition-colors duration-200 ease-(--ease-out) hover:bg-paper/70"
+          >
             <div className="min-w-0">
               <p className="font-medium">{title}</p>
               {detail ? <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">{detail}</p> : null}
@@ -211,13 +228,17 @@ function TasksSection() {
   const tasks = Array.isArray(data.tasks) ? (data.tasks as WorkItem[]) : Array.isArray(data.items) ? (data.items as WorkItem[]) : [];
   const notifications = Array.isArray(data.notifications) ? (data.notifications as WorkItem[]) : [];
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <Panel title="Tasks" description="Assigned to you">
-        <WorkList items={tasks} kind="task" />
-      </Panel>
-      <Panel title="Notifications">
-        <WorkList items={notifications} kind="notification" />
-      </Panel>
-    </div>
+    <RevealGroup className="grid gap-6 lg:grid-cols-2" stagger={0.05}>
+      <RevealItem className="flex min-w-0" y={12}>
+        <Panel className="w-full" title="Tasks" description="Assigned to you">
+          <WorkList items={tasks} kind="task" />
+        </Panel>
+      </RevealItem>
+      <RevealItem className="flex min-w-0" y={12}>
+        <Panel className="w-full" title="Notifications">
+          <WorkList items={notifications} kind="notification" />
+        </Panel>
+      </RevealItem>
+    </RevealGroup>
   );
 }

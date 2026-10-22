@@ -19,7 +19,7 @@ export function SkipLink() {
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-navy-900 text-white">
+    <header className="sticky top-0 z-40 border-b border-gold-rule/60 bg-plate/82 text-paper shadow-[inset_0_-1px_0_oklch(0.9_0.085_92/0.06)] backdrop-blur-2xl backdrop-saturate-150">
       <Container className="flex h-16 items-center gap-6 lg:gap-10">
         <Link
           href="/"
@@ -32,7 +32,7 @@ export function SiteHeader() {
         <div className="ml-auto hidden items-center gap-2 md:flex">
           <Link
             href={SIGN_IN_HREF}
-            className="inline-flex h-9 items-center rounded-md px-3 text-sm font-medium text-navy-100 transition-colors outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-sky-accent"
+            className="press inline-flex h-9 items-center rounded-full px-4 text-sm font-medium text-navy-100 outline-none hover:bg-white/8 hover:text-white focus-visible:ring-2 focus-visible:ring-sky-accent"
           >
             Sign in
           </Link>

@@ -4,13 +4,14 @@ import { CircleAlertIcon, LightbulbIcon, TriangleAlertIcon } from "lucide-react"
 import type { ReactNode } from "react";
 
 import { StatusBadge } from "@/components/app/badges";
+import { Perforation } from "@/components/app/print";
 import { formatEvidenceValue, isNum } from "@/lib/app/decision-lab-format";
 import type { LeverAssumption, LeverEvidenceItem, LeverResult, LeverType } from "@/lib/app/decision-lab-types";
 import { formatDate, formatNumber, humanize } from "@/lib/app/format";
 import { cn } from "@/lib/utils";
 
 import { SourceBadge } from "./common";
-import { LEVER_ICONS, LEVER_LABELS } from "./lever-editor";
+import { LEVER_LABELS, LeverMark } from "./lever-editor";
 
 const EVIDENCE_META = new Set([
   "name",
@@ -89,11 +90,16 @@ export function AssumptionRows({
 }) {
   if (!assumptions.length) return <p className="text-sm text-muted-foreground">No assumptions recorded.</p>;
   return (
-    <div className="relative w-full overflow-x-auto rounded-lg ring-1 ring-foreground/8" tabIndex={0} role="region" aria-label="Assumptions">
-      <table className="w-full border-collapse text-[0.8125rem]">
+    <div
+      className="relative w-full overflow-x-auto rounded-xl bg-white/30 ring-1 ring-(--glass-border) outline-none focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-white/[0.02]"
+      tabIndex={0}
+      role="region"
+      aria-label="Assumptions"
+    >
+      <table className="w-full border-collapse text-[0.8125rem] tabular-nums">
         <caption className="sr-only">Assumptions and where each value comes from</caption>
-        <thead className="bg-muted/60">
-          <tr className="border-b">
+        <thead className="bg-white/55 backdrop-blur-md dark:bg-white/[0.04]">
+          <tr className="border-b border-(--glass-border) text-xs">
             {showLever ? <th scope="col" className="px-3 py-2 text-left font-medium text-muted-foreground">Lever</th> : null}
             <th scope="col" className="px-3 py-2 text-left font-medium text-muted-foreground">Assumption</th>
             <th scope="col" className="px-3 py-2 text-right font-medium text-muted-foreground">Value</th>
@@ -105,7 +111,10 @@ export function AssumptionRows({
             // Long descriptions (cost structure, methods) read better under the name than in a narrow value column.
             const long = typeof a.value === "string" && a.value.length > 48;
             return (
-              <tr key={`${a.lever ?? ""}-${a.name}-${i}`} className="border-b align-top last:border-b-0">
+              <tr
+                key={`${a.lever ?? ""}-${a.name}-${i}`}
+                className="border-b border-(--glass-border) align-top transition-colors duration-200 ease-(--ease-out) last:border-b-0 hover:bg-primary/[0.035] dark:hover:bg-white/[0.035]"
+              >
                 {showLever ? <td className="px-3 py-2 text-muted-foreground">{a.lever === "baseline" ? "Baseline" : a.lever}</td> : null}
                 <td className="px-3 py-2">
                   {a.name}
@@ -131,7 +140,7 @@ function DetailBlock({ title, values, currency }: { title: string; values: Recor
   const entries = Object.entries(values).filter(([, v]) => v !== null && v !== undefined);
   if (!entries.length) return null;
   return (
-    <div className="rounded-lg bg-muted/50 px-3.5 py-3">
+    <div className="rounded-xl bg-white/45 px-3.5 py-3 ring-1 ring-(--glass-border) dark:bg-white/[0.04]">
       <p className="text-xs font-medium text-muted-foreground">{title}</p>
       <dl className="mt-2 grid gap-x-5 gap-y-2 sm:grid-cols-2">
         {entries.map(([key, value]) => (
@@ -182,17 +191,14 @@ export function LeverResultPanel({
   currency: string;
   categories: Record<string, string>;
 }) {
-  const Icon = LEVER_ICONS[lever.type as LeverType] ?? CircleAlertIcon;
   const details = Object.entries(lever).filter(
     ([key, value]) => !KNOWN_KEYS.has(key) && value && typeof value === "object" && !Array.isArray(value),
   ) as [string, Record<string, unknown>][];
   const label = lever.label && lever.label !== lever.type ? lever.label : LEVER_LABELS[lever.type as LeverType] ?? humanize(lever.type);
   return (
-    <article className="rounded-xl bg-card ring-1 ring-foreground/10" aria-label={`Lever ${lever.index + 1}: ${label}`}>
-      <header className="flex items-start gap-2.5 border-b px-4 py-3 sm:px-5">
-        <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-md bg-brand-50 text-brand-700 dark:bg-brand-800/30 dark:text-brand-200">
-          <Icon className="size-4" aria-hidden />
-        </span>
+    <article className="h-full rounded-xl glass" aria-label={`Lever ${lever.index + 1}: ${label}`}>
+      <header className="flex items-start gap-3 px-4 pt-3.5 pb-3 sm:px-5">
+        <LeverMark type={lever.type} className="mt-0.5 size-9" />
         <div className="min-w-0">
           <h3 className="font-heading text-sm font-semibold">
             <span className="text-muted-foreground tabular">{lever.index + 1}.</span> {label}
@@ -200,10 +206,11 @@ export function LeverResultPanel({
           <p className="mt-0.5 text-[0.8125rem] text-foreground/85">{lever.summary}</p>
         </div>
       </header>
+      <Perforation className="mx-auto w-[calc(100%-1.5rem)]" />
       <div className="space-y-4 px-4 py-4 sm:px-5">
         {lever.revenue_effect_note ? (
-          <div className="flex items-start gap-2.5 rounded-lg bg-brand-50 px-3.5 py-3 text-[0.8125rem] leading-relaxed text-navy-800 ring-1 ring-brand-200/80 dark:bg-brand-800/25 dark:text-navy-100 dark:ring-brand-700/40">
-            <CircleAlertIcon className="mt-0.5 size-4 shrink-0 text-brand-600 dark:text-sky-accent" aria-hidden />
+          <div className="flex items-start gap-2.5 rounded-lg border-l-2 border-prussian/60 bg-paper/70 py-2.5 pr-3.5 pl-3 text-[0.8125rem] leading-relaxed">
+            <CircleAlertIcon className="mt-0.5 size-4 shrink-0 text-prussian" aria-hidden />
             <p>
               <strong className="font-semibold">Revenue effect.</strong> {lever.revenue_effect_note}
             </p>
@@ -213,7 +220,7 @@ export function LeverResultPanel({
           <ul className="space-y-1.5">
             {lever.insights.map((insight, i) => (
               <li key={i} className="flex items-start gap-2 text-[0.8125rem] leading-relaxed">
-                <LightbulbIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <LightbulbIcon className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
                 <span>{insight}</span>
               </li>
             ))}
@@ -222,7 +229,7 @@ export function LeverResultPanel({
         {lever.warnings?.length ? (
           <ul className="space-y-1.5">
             {lever.warnings.map((warning, i) => (
-              <li key={i} className="flex items-start gap-2 rounded-lg bg-warning/12 px-3 py-2 text-[0.8125rem] leading-relaxed ring-1 ring-warning/30">
+              <li key={i} className="flex items-start gap-2 rounded-xl bg-warning/12 px-3 py-2 text-[0.8125rem] leading-relaxed ring-1 ring-warning/30">
                 <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
                 <span>{warning}</span>
               </li>
@@ -234,7 +241,7 @@ export function LeverResultPanel({
         ))}
         {lever.evidence?.length ? (
           <Section title="Evidence from your data">
-            <ul className="divide-y">
+            <ul className="divide-y divide-(--glass-border)">
               {lever.evidence.map((item, i) => (
                 <EvidenceItem key={`${item.name}-${i}`} item={item} currency={currency} categories={categories} />
               ))}

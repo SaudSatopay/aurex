@@ -1,7 +1,8 @@
 "use client";
 
-import { ChevronDownIcon, LoaderCircleIcon, PlayIcon, PlusIcon, RotateCcwIcon, SaveIcon, SparklesIcon } from "lucide-react";
-import { useId, useState } from "react";
+import { ChevronDownIcon, LoaderCircleIcon, PlayIcon, PlusIcon, RotateCcwIcon, SaveIcon } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useId, useMemo, useState } from "react";
 
 import { FormError } from "@/components/app/form";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import type { CatalogLever, DecisionEvidence, LeverType } from "@/lib/app/decisi
 import type { FiltersResponse } from "@/lib/app/types";
 import { cn } from "@/lib/utils";
 
-import { LEVER_ICONS, LEVER_LABELS, LEVER_TYPES, LeverCard } from "./lever-editor";
+import { LEVER_LABELS, LEVER_TYPES, LeverCard, LeverMark } from "./lever-editor";
 import { ScopePicker, type Scope } from "./scope-picker";
 
 export const HORIZONS = [1, 3, 6, 9, 12, 18, 24, 36];
@@ -37,11 +38,14 @@ export function validateAdvanced(settings: AdvancedSettings): AdvancedErrors {
 
 function PresetButton({
   label,
+  leverType,
   disabledReason,
   onClick,
   busy,
 }: {
   label: string;
+  /** The lever the quick start sets up: its mint mark prints on the chip. */
+  leverType?: string;
   disabledReason?: string;
   onClick: () => void;
   busy: boolean;
@@ -50,12 +54,12 @@ function PresetButton({
     <Button
       variant="outline"
       size="sm"
-      className="h-auto min-h-7 justify-start py-1 text-left whitespace-normal max-w-full shrink"
+      className="h-auto min-h-8 max-w-full shrink justify-start rounded-lg bg-sheet py-1 pl-1.5 text-left whitespace-normal"
       onClick={onClick}
       disabled={Boolean(disabledReason) || busy}
       title={disabledReason}
     >
-      <SparklesIcon className="text-primary" aria-hidden />
+      {leverType ? <LeverMark type={leverType} className="size-5" /> : null}
       {label}
     </Button>
   );
@@ -123,6 +127,12 @@ export function Builder({
   const descriptions = Object.fromEntries(catalog.map((c) => [c.type, c.description])) as Partial<Record<LeverType, string>>;
   const available = catalog.length ? catalog.map((c) => c.type) : LEVER_TYPES;
   const showAdvanced = advancedOpen || Object.keys(advancedErrors).length > 0;
+  const still = useReducedMotion();
+  // Which lever each quick start sets up (for its mint mark); computed once, drafts are discarded.
+  const presetTypes = useMemo(
+    () => Object.fromEntries(PRESETS.map((p) => [p.key, p.levers({ headcount: null })[0]?.type])) as Record<string, string | undefined>,
+    [],
+  );
 
   return (
     <div className="space-y-5">
@@ -137,6 +147,7 @@ export function Builder({
               <PresetButton
                 key={preset.key}
                 label={preset.label(presetContext)}
+                leverType={presetTypes[preset.key]}
                 busy={running}
                 disabledReason={
                   !canRun
@@ -153,7 +164,7 @@ export function Builder({
         <p className="text-xs text-muted-foreground">A quick start replaces the levers below and runs straight away.</p>
       </section>
 
-      <section aria-labelledby={`${horizonId}-scope`} className="space-y-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
+      <section aria-labelledby={`${horizonId}-scope`} className="space-y-3 rounded-2xl glass p-4">
         <div className="flex items-baseline justify-between gap-2">
           <h2 id={`${horizonId}-scope`} className="font-heading text-sm font-semibold">
             Scope and horizon
@@ -183,13 +194,13 @@ export function Builder({
             type="button"
             onClick={() => setAdvancedOpen((v) => !v)}
             aria-expanded={showAdvanced}
-            className="inline-flex items-center gap-1 rounded-md text-xs font-medium text-primary outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="press inline-flex items-center gap-1 rounded-md text-xs font-medium text-primary outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
           >
-            <ChevronDownIcon className={cn("size-3.5 transition-transform", showAdvanced && "rotate-180")} aria-hidden />
+            <ChevronDownIcon className={cn("size-3.5 transition-transform duration-300 ease-(--ease-out)", showAdvanced && "rotate-180")} aria-hidden />
             Simulation settings
           </button>
           {showAdvanced ? (
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid gap-3 duration-300 ease-(--ease-out) animate-in fade-in-0 slide-in-from-top-1 motion-reduce:animate-none sm:grid-cols-3">
               <div className="space-y-1.5">
                 <Label htmlFor={runsId} className="text-[0.8125rem]">
                   Monte Carlo runs
@@ -266,10 +277,9 @@ export function Builder({
               <DropdownMenuLabel>Choose what to change</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {available.map((type) => {
-                const Icon = LEVER_ICONS[type];
                 return (
                   <DropdownMenuItem key={type} onSelect={() => onLeversChange([...levers, emptyDraft(type)])} className="items-start gap-2.5 py-2">
-                    <Icon className="mt-0.5 text-muted-foreground" aria-hidden />
+                    <LeverMark type={type} className="mt-px size-6" />
                     <span className="min-w-0">
                       <span className="block font-medium">{LEVER_LABELS[type]}</span>
                       {descriptions[type] ? <span className="block text-xs leading-snug text-muted-foreground">{descriptions[type]}</span> : null}
@@ -281,30 +291,41 @@ export function Builder({
           </DropdownMenu>
         </div>
         {levers.length === 0 ? (
-          <div className="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+          <div className="rounded-xl border border-dashed border-rule-strong bg-paper/50 px-4 py-6 text-center text-sm text-muted-foreground">
             Add a lever, or start from a quick-start scenario above.
           </div>
         ) : (
           <div className="space-y-3">
-            {levers.map((draft, index) => (
-              <LeverCard
-                key={draft.uid}
-                draft={draft}
-                index={index}
-                errors={errors[draft.uid] ?? {}}
-                showErrors={showErrors}
-                currency={currency}
-                evidence={evidence}
-                description={descriptions[draft.type]}
-                onChange={(next) => onLeversChange(levers.map((l) => (l.uid === draft.uid ? next : l)))}
-                onRemove={() => onLeversChange(levers.filter((l) => l.uid !== draft.uid))}
-              />
-            ))}
+            <AnimatePresence initial={false} mode="popLayout">
+              {levers.map((draft, index) => (
+                <motion.div
+                  key={draft.uid}
+                  data-reveal=""
+                  layout="position"
+                  initial={{ opacity: 0, y: 12, scale: 0.98, filter: "blur(6px)" }}
+                  animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)", transitionEnd: { filter: "none" } }}
+                  exit={{ opacity: 0, scale: 0.97, filter: "blur(6px)", transition: still ? { duration: 0 } : { duration: 0.2, ease: [0.77, 0, 0.175, 1] } }}
+                  transition={still ? { duration: 0 } : { type: "spring", bounce: 0, visualDuration: 0.45 }}
+                >
+                  <LeverCard
+                    draft={draft}
+                    index={index}
+                    errors={errors[draft.uid] ?? {}}
+                    showErrors={showErrors}
+                    currency={currency}
+                    evidence={evidence}
+                    description={descriptions[draft.type]}
+                    onChange={(next) => onLeversChange(levers.map((l) => (l.uid === draft.uid ? next : l)))}
+                    onRemove={() => onLeversChange(levers.filter((l) => l.uid !== draft.uid))}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </section>
 
-      <div className="sticky bottom-0 z-10 -mx-1 space-y-2 rounded-xl bg-background/95 px-1 py-3 backdrop-blur supports-backdrop-filter:bg-background/80">
+      <div className="sticky bottom-3 z-10 space-y-2 rounded-2xl glass-strong px-3 py-3">
         <FormError message={runError} />
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={onRun} disabled={running || !canRun} className="min-w-36">

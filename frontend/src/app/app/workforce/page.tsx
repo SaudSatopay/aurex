@@ -9,6 +9,7 @@ import { DataTable, type Column } from "@/components/app/data-table";
 import { KpiLedger } from "@/components/app/kpi";
 import { PageHeader, Panel, SectionHeading } from "@/components/app/page";
 import { ChartSkeleton, EmptyState, ErrorState, Notice, TableSkeleton } from "@/components/app/states";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { useFilters } from "@/hooks/use-filters";
 import { useOrgQuery } from "@/hooks/use-org-query";
 import { formatMoney, formatMonth, formatNumber, formatPercent, moneyTick } from "@/lib/app/format";
@@ -90,7 +91,8 @@ function MiniTrend({
   yWidth?: number;
 }) {
   return (
-    <Panel title={title} description={description}>
+    <RevealItem className="flex min-w-0" y={12}>
+    <Panel className="w-full" title={title} description={description}>
       <TrendChart
         ariaLabel={`${title} by month`}
         data={rows}
@@ -104,6 +106,7 @@ function MiniTrend({
         legend={series.length > 1}
       />
     </Panel>
+    </RevealItem>
   );
 }
 
@@ -208,7 +211,7 @@ function Workforce() {
           <KpiLedger kpis={workforceKpis(data)} currency={currency} />
         </section>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <RevealGroup className="grid gap-6 lg:grid-cols-2" stagger={0.05}>
           <MiniTrend
             title="Headcount"
             description="All stores and head office"
@@ -255,7 +258,7 @@ function Workforce() {
             yFormat={(v) => formatNumber(v, { decimals: 1 })}
             yWidth={40}
           />
-        </div>
+        </RevealGroup>
 
         <SectionHeading title="Detail" />
         <Panel title="By month" description="All workforce figures per month" actions={toggle}>

@@ -11,10 +11,12 @@ import {
 } from "lucide-react";
 import { useId, useState } from "react";
 
+import { MintMark } from "@/components/art/ornaments";
 import { StatusBadge } from "@/components/app/badges";
 import { DataTable } from "@/components/app/data-table";
 import { FormError, TextAreaField, TextField } from "@/components/app/form";
 import { EmptyState } from "@/components/app/states";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -88,12 +90,15 @@ export function ScenarioRow({
   const unc = run?.summary.uncertainty;
   const names = leverNames(scenario.levers);
   return (
-    <li
+    <RevealItem
+      as="li"
+      y={10}
       className={cn(
-        "grid gap-3 px-4 py-3.5 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:px-5",
-        active && "bg-brand-50/60 dark:bg-brand-800/15",
+        "relative grid gap-3 px-4 py-3.5 transition-colors duration-200 ease-(--ease-out) hover:bg-paper/60 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:px-5",
+        active && "bg-gold/[0.06] hover:bg-gold/[0.08]",
       )}
     >
+      {active ? <span aria-hidden className="absolute inset-y-3 left-0 w-[3px] rounded-r-full bg-gold" /> : null}
       <div className="flex items-start gap-3 sm:contents">
         <Checkbox
           id={checkId}
@@ -103,12 +108,14 @@ export function ScenarioRow({
           onCheckedChange={(value) => onToggleSelect(value === true)}
           aria-label={`Select ${scenario.name} for comparison`}
         />
+        <div className="flex min-w-0 items-start gap-3">
+        <MintMark name={`scenario:${scenario.id}`} tone={active ? "gold" : "ink"} className="mt-0.5 hidden size-9 shrink-0 sm:block" />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <button
               type="button"
               onClick={onOpen}
-              className="rounded-sm text-left text-[0.9375rem] font-semibold outline-none hover:text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="press rounded-sm text-left text-[0.9375rem] font-semibold outline-none hover:text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               {scenario.name}
             </button>
@@ -126,11 +133,12 @@ export function ScenarioRow({
             {formatRelative(scenario.updated_at)}
           </p>
         </div>
+        </div>
       </div>
       <div className="flex items-center justify-between gap-4 sm:justify-end">
         <div className="text-right">
           <p className="text-xs text-muted-foreground">Net profit change</p>
-          <p className={cn("font-semibold tabular", net !== null && net < 0 && "text-destructive")}>{formatDelta(net, currency)}</p>
+          <p className={cn("numeral text-[1.25rem] leading-tight font-semibold", net !== null && net < 0 && "text-oxblood")}>{formatDelta(net, currency)}</p>
           <p className="text-xs text-muted-foreground tabular">
             {unc ? `P10 ${formatDelta(unc.p10, currency)} · P90 ${formatDelta(unc.p90, currency)}` : "Not run yet"}
           </p>
@@ -181,7 +189,7 @@ export function ScenarioRow({
           ) : null}
         </div>
       </div>
-    </li>
+    </RevealItem>
   );
 }
 
@@ -212,7 +220,7 @@ export function ScenarioList({
     );
   }
   return (
-    <ul className="divide-y">
+    <RevealGroup as="ul" className="divide-y divide-(--glass-border)" stagger={0.04}>
       {scenarios.map((s) => (
         <ScenarioRow
           key={s.id}
@@ -232,7 +240,7 @@ export function ScenarioList({
           active={activeId === s.id}
         />
       ))}
-    </ul>
+    </RevealGroup>
   );
 }
 

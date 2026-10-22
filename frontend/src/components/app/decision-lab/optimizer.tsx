@@ -1,6 +1,6 @@
 "use client";
 
-import { CrosshairIcon, LoaderCircleIcon, PlusIcon, Trash2Icon, WandSparklesIcon } from "lucide-react";
+import { CrosshairIcon, LoaderCircleIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useId, useMemo, useState } from "react";
 import {
   CartesianGrid,
@@ -16,13 +16,16 @@ import {
   type TooltipContentProps,
 } from "recharts";
 
+import { MintMark } from "@/components/art/ornaments";
 import { StatusBadge } from "@/components/app/badges";
-import { ChartLegend, TooltipCard, useChartView } from "@/components/app/charts/chart-parts";
-import { AXIS_TEXT, CONTEXT_COLOR, GRID_COLOR, POSITIVE_COLOR, SERIES_COLORS } from "@/components/app/charts/palette";
+import { ChartLegend, TooltipCard, useChartAnimation, useChartView } from "@/components/app/charts/chart-parts";
+import { AXIS_TEXT, CONTEXT_COLOR, CURSOR_LINE, GRID_COLOR, GRID_SOFT, POSITIVE_COLOR, SERIES_COLORS } from "@/components/app/charts/palette";
 import { DataTable } from "@/components/app/data-table";
 import { FormError } from "@/components/app/form";
 import { NoteList, Panel } from "@/components/app/page";
 import { EmptyState, Notice } from "@/components/app/states";
+import { NumberTicker } from "@/components/kit/number-ticker";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,7 +51,7 @@ import type {
 } from "@/lib/app/decision-lab-types";
 import { formatMoney, formatNumber, formatPercent, formatPoints, moneyTick } from "@/lib/app/format";
 
-import { LEVER_LABELS } from "./lever-editor";
+import { LEVER_LABELS, LeverMark } from "./lever-editor";
 
 const OBJECTIVES: { value: OptimizeObjective; label: string }[] = [
   { value: "net_profit", label: "Maximise net profit change" },
@@ -108,6 +111,7 @@ function Landscape({ result, variables, levers, currency }: { result: OptimizeRe
     .sort((a, b) => (a.x as number) - (b.x as number));
   const bestX = result.best?.values[key];
   const single = variables.length === 1;
+  const animation = useChartAnimation();
   function renderTooltip(props: TooltipContentProps) {
     if (!props.active || !props.payload?.length) return null;
     const d = props.payload[0]?.payload as (typeof data)[number] | undefined;
@@ -138,7 +142,7 @@ function Landscape({ result, variables, levers, currency }: { result: OptimizeRe
       <div className="h-64 min-w-0">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
-            <CartesianGrid vertical={false} stroke={GRID_COLOR} />
+            <CartesianGrid vertical={false} {...GRID_SOFT} />
             <XAxis
               dataKey="x"
               type="number"
@@ -152,11 +156,13 @@ function Landscape({ result, variables, levers, currency }: { result: OptimizeRe
             <YAxis dataKey="y" tickFormatter={moneyTick(currency)} tickLine={false} axisLine={false} tick={{ fill: AXIS_TEXT, fontSize: 12 }} width={68} />
             <ReferenceLine y={0} stroke={AXIS_TEXT} strokeOpacity={0.5} />
             {isNum(bestX) ? <ReferenceLine x={bestX} stroke={POSITIVE_COLOR} strokeWidth={1.5} /> : null}
-            <Tooltip content={renderTooltip} isAnimationActive={false} cursor={{ stroke: AXIS_TEXT, strokeWidth: 1 }} />
-            {single ? <Line data={data} dataKey="y" stroke={CONTEXT_COLOR} strokeWidth={1.5} dot={false} isAnimationActive={false} /> : null}
-            <Scatter data={data} dataKey="y" isAnimationActive={false}>
+            <Tooltip content={renderTooltip} isAnimationActive={false} cursor={CURSOR_LINE} />
+            {single ? (
+              <Line data={data} dataKey="y" stroke={CONTEXT_COLOR} strokeWidth={1.5} strokeLinecap="round" dot={false} {...animation} />
+            ) : null}
+            <Scatter data={data} dataKey="y" {...animation}>
               {data.map((d, i) => (
-                <Cell key={i} fill={d.feasible ? SERIES_COLORS[0] : CONTEXT_COLOR} />
+                <Cell key={i} fill={d.feasible ? SERIES_COLORS[0] : CONTEXT_COLOR} stroke="var(--card)" strokeWidth={1.5} />
               ))}
             </Scatter>
           </ComposedChart>
@@ -304,7 +310,10 @@ export function Optimizer({
               const suffix = unitSuffix(field);
               const id = `${baseId}-var-${i}`;
               return (
-                <div key={i} className="space-y-2 rounded-lg bg-muted/50 p-3">
+                <div
+                  key={i}
+                  className="space-y-2 rounded-lg bg-paper/70 p-3 ring-1 ring-rule duration-300 ease-(--ease-out) animate-in fade-in-0 slide-in-from-top-1 motion-reduce:animate-none"
+                >
                   <div className="flex items-center justify-between gap-2">
                     <Label htmlFor={`${id}-field`} className="text-[0.8125rem]">
                       Variable {i + 1}
@@ -376,7 +385,10 @@ export function Optimizer({
               const ratio = CONSTRAINT_METRICS.find((m) => m.value === c.metric)?.ratio;
               const id = `${baseId}-con-${i}`;
               return (
-                <div key={i} className="grid grid-cols-2 gap-2 rounded-lg bg-muted/50 p-3">
+                <div
+                  key={i}
+                  className="grid grid-cols-2 gap-2 rounded-lg bg-paper/70 p-3 ring-1 ring-rule duration-300 ease-(--ease-out) animate-in fade-in-0 slide-in-from-top-1 motion-reduce:animate-none"
+                >
                   <div className="col-span-2 flex items-center justify-between">
                     <span className="text-[0.8125rem] font-medium">Constraint {i + 1}</span>
                     <Button variant="ghost" size="icon-xs" onClick={() => setConstraints(constraints.filter((_, j) => j !== i))} aria-label={`Remove constraint ${i + 1}`}>
@@ -461,7 +473,7 @@ export function Optimizer({
 
           <FormError message={formError ?? (error ? errorText(error) : null)} />
           <Button onClick={submit} disabled={running} className="w-full">
-            {running ? <LoaderCircleIcon className="animate-spin" aria-hidden /> : <WandSparklesIcon aria-hidden />}
+            {running ? <LoaderCircleIcon className="animate-spin" aria-hidden /> : <CrosshairIcon aria-hidden />}
             {running ? "Searching the grid…" : "Find the best values"}
           </Button>
         </div>
@@ -495,31 +507,56 @@ export function Optimizer({
             }
             footer={<NoteList notes={[result.method, result.caveat].filter((n): n is string => Boolean(n))} />}
           >
-            <dl className="grid gap-4 sm:grid-cols-2">
+            <RevealGroup as="div" className="grid gap-3 sm:grid-cols-2" stagger={0.05} onMount>
+              <RevealItem y={10} className="sm:col-span-2">
+                <div className="relative isolate overflow-hidden rounded-xl px-4 py-4 text-sidebar-foreground shadow-[inset_0_1px_0_oklch(0.9_0.085_92/0.22),0_0_0_1px_oklch(0.9_0.085_92/0.14)] sm:px-5">
+                  <div aria-hidden className="aurora-hero" />
+                  <MintMark
+                    name={`objective:${result.objective ?? "net_profit"}`}
+                    tone="gold"
+                    className="pointer-events-none absolute top-1/2 right-4 size-20 -translate-y-1/2 opacity-60"
+                  />
+                  <dl>
+                    <dt className="text-xs text-sidebar-foreground/70">Objective</dt>
+                    <dd className="numeral mt-1 text-[2.25rem] leading-none font-semibold text-gold-light sm:text-[2.625rem]">
+                      {isNum(cleanAmount(best.objective)) ? (
+                        <NumberTicker value={cleanAmount(best.objective) as number} format={(v) => formatDelta(v, currency)} />
+                      ) : (
+                        formatDelta(best.objective, currency)
+                      )}
+                    </dd>
+                    {isNum(best.p10_net_profit) ? (
+                      <dd className="mt-1.5 text-xs text-sidebar-foreground/70">P10 net profit change {formatDelta(best.p10_net_profit, currency)}</dd>
+                    ) : null}
+                  </dl>
+                </div>
+              </RevealItem>
               {Object.entries(best.values).map(([key, value]) => {
                 const [i, f] = key.split(".");
                 const lever = levers[Number(i)];
                 const field = lever ? fieldDef(lever.type, f) : undefined;
                 return (
-                  <div key={key}>
-                    <dt className="text-xs text-muted-foreground">
-                      {lever ? `${Number(i) + 1}. ${lever.label || LEVER_LABELS[lever.type]}` : key}: {field?.label ?? f}
-                    </dt>
-                    <dd className="text-xl font-semibold">{formatFieldValue(field, value, currency)}</dd>
-                  </div>
+                  <RevealItem key={key} y={10}>
+                    <div className="flex h-full items-start gap-3 rounded-xl glass px-3.5 py-3">
+                      {lever ? <LeverMark type={lever.type} className="mt-0.5 size-8" /> : null}
+                      <dl className="min-w-0">
+                        <dt className="text-xs text-muted-foreground">
+                          {lever ? `${Number(i) + 1}. ${lever.label || LEVER_LABELS[lever.type]}` : key}: {field?.label ?? f}
+                        </dt>
+                        <dd className="numeral mt-1 text-[1.625rem] leading-none font-semibold">
+                          {isNum(value) ? <NumberTicker value={value} format={(v) => formatFieldValue(field, v, currency)} /> : formatFieldValue(field, value, currency)}
+                        </dd>
+                      </dl>
+                    </div>
+                  </RevealItem>
                 );
               })}
-              <div>
-                <dt className="text-xs text-muted-foreground">Objective</dt>
-                <dd className="text-xl font-semibold">{formatDelta(best.objective, currency)}</dd>
-                {isNum(best.p10_net_profit) ? <dd className="text-xs text-muted-foreground">P10 net profit change {formatDelta(best.p10_net_profit, currency)}</dd> : null}
-              </div>
-            </dl>
-            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t pt-4 text-[0.8125rem]">
+            </RevealGroup>
+            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-(--glass-border) pt-4 text-[0.8125rem]">
               {Object.entries(best.delta).map(([k, v]) => (
                 <span key={k}>
                   <span className="text-muted-foreground">{k === "net_sales" ? "Net sales" : k === "gross_profit" ? "Gross profit" : k === "ebitda" ? "EBITDA" : k === "net_profit" ? "Net profit" : "Free cash flow"}</span>{" "}
-                  <span className="font-semibold tabular">{formatDelta(v, currency)}</span>
+                  <span className="numeral text-[0.9375rem] font-semibold">{formatDelta(v, currency)}</span>
                 </span>
               ))}
             </div>

@@ -9,6 +9,8 @@ import { IntegrationStatusBadge, SyntheticFeedBadge } from "@/components/app/bad
 import { DataTable, type Column } from "@/components/app/data-table";
 import { useSession } from "@/components/app/session-provider";
 import { EmptyState, QueryView, TableSkeleton } from "@/components/app/states";
+import { SpotlightCard } from "@/components/kit/spotlight-card";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useInvalidateOrg, useOrgMutation, useOrgQuery } from "@/hooks/use-org-query";
@@ -18,6 +20,7 @@ import { PERMISSIONS } from "@/lib/app/nav";
 import type { AuthorityRules, Company, Integration } from "@/lib/app/types";
 
 import { factLabel } from "../freshness";
+import { ProviderMark } from "./catalog";
 
 /** Every connection with an honest status: only a passing live test reads as connected. */
 export function ConnectionList({ integrations }: { integrations: Integration[] }) {
@@ -38,13 +41,15 @@ export function ConnectionList({ integrations }: { integrations: Integration[] }
     );
   }
   return (
-    <ul className="divide-y overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+    <RevealGroup as="ul" stagger={0.04} className="divide-y divide-(--glass-border) overflow-hidden rounded-2xl glass">
       {integrations.map((i) => (
-        <li key={i.id}>
+        <RevealItem as="li" y={10} key={i.id}>
+          <SpotlightCard>
           <Link
             href={`/app/integrations/${i.id}`}
-            className="group flex items-start gap-4 px-4 py-4 transition-colors outline-none hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset sm:px-5"
+            className="group flex items-start gap-4 px-4 py-4 transition-[background-color,scale] duration-200 ease-(--ease-out) outline-none hover:bg-gold/[0.04] focus-visible:bg-gold/[0.04] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset active:scale-[0.995] sm:px-5"
           >
+            <ProviderMark provider={i.provider_key} className="mt-0.5 size-10" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium text-foreground">{i.display_name}</span>
@@ -64,11 +69,12 @@ export function ConnectionList({ integrations }: { integrations: Integration[] }
               </p>
               <p className="mt-1 text-xs text-muted-foreground">{formatNumber(i.sync_job_count ?? 0)} sync jobs</p>
             </div>
-            <ChevronRightIcon className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden />
+            <ChevronRightIcon className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform duration-300 ease-(--ease-out) group-hover:translate-x-1 group-hover:text-foreground" aria-hidden />
           </Link>
-        </li>
+          </SpotlightCard>
+        </RevealItem>
       ))}
-    </ul>
+    </RevealGroup>
   );
 }
 

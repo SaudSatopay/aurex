@@ -96,16 +96,21 @@ export function DataTable<T>({
   return (
     <div className={cn("min-w-0", className)}>
       <div
-        className="relative w-full overflow-x-auto rounded-lg ring-1 ring-foreground/8"
+        className="relative w-full overflow-x-auto rounded-xl bg-white/30 ring-1 ring-(--glass-border) outline-none focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-white/[0.02]"
         style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}
         tabIndex={0}
         role="region"
         aria-label={caption}
       >
-        <table className="w-full caption-bottom border-collapse text-[0.8125rem]">
+        <table className="w-full caption-bottom border-collapse text-[0.8125rem] tabular-nums">
           <caption className="sr-only">{caption}</caption>
-          <thead className={cn("bg-muted/60", maxHeight && "sticky top-0 z-10 bg-muted")}>
-            <tr className="border-b">
+          <thead
+            className={cn(
+              "bg-white/55 backdrop-blur-md dark:bg-white/[0.04]",
+              maxHeight && "sticky top-0 z-10 bg-(--glass-bg-strong) backdrop-blur-xl dark:bg-(--glass-bg-strong)",
+            )}
+          >
+            <tr className="border-b border-(--glass-border)">
               {columns.map((column) => {
                 const active = sort?.key === column.key;
                 const ariaSort = active ? (sort.dir === "asc" ? "ascending" : "descending") : column.sortValue ? "none" : undefined;
@@ -117,10 +122,10 @@ export function DataTable<T>({
                     scope="col"
                     aria-sort={ariaSort}
                     className={cn(
-                      "h-9 font-medium whitespace-nowrap text-muted-foreground",
+                      "h-9 text-xs font-medium tracking-[0.01em] whitespace-nowrap text-muted-foreground",
                       column.sortValue ? "px-1.5" : "px-3",
                       alignClass,
-                      column.sticky && "sticky left-0 z-[1] bg-muted",
+                      column.sticky && "sticky left-0 z-[1] bg-(--glass-bg-strong) backdrop-blur-xl",
                       column.headerClassName,
                     )}
                   >
@@ -129,7 +134,7 @@ export function DataTable<T>({
                         type="button"
                         onClick={() => toggleSort(column.key)}
                         className={cn(
-                          "inline-flex h-7 items-center gap-1 rounded-md px-1.5 transition-colors outline-none hover:bg-background hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50",
+                          "press inline-flex h-7 items-center gap-1 rounded-lg px-1.5 outline-none hover:bg-white/70 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 dark:hover:bg-white/[0.08]",
                           active && "text-foreground",
                           column.align === "right" && "flex-row-reverse",
                         )}
@@ -158,7 +163,10 @@ export function DataTable<T>({
             {visible.map((row, index) => (
               <tr
                 key={rowKey(row, index)}
-                className={cn("border-b transition-colors last:border-b-0 hover:bg-muted/40", rowClassName?.(row))}
+                className={cn(
+                  "group/row border-b border-(--glass-border) transition-colors duration-200 ease-(--ease-out) last:border-b-0 hover:bg-primary/[0.035] dark:hover:bg-white/[0.035]",
+                  rowClassName?.(row),
+                )}
               >
                 {columns.map((column) => (
                   <td
@@ -168,7 +176,7 @@ export function DataTable<T>({
                       "align-middle",
                       column.align === "right" && "text-right tabular whitespace-nowrap",
                       column.align === "center" && "text-center",
-                      column.sticky && "sticky left-0 z-[1] bg-card whitespace-nowrap",
+                      column.sticky && "sticky left-0 z-[1] bg-(--glass-bg-strong) whitespace-nowrap backdrop-blur-xl",
                       column.className,
                     )}
                   >
@@ -178,7 +186,7 @@ export function DataTable<T>({
               </tr>
             ))}
           </tbody>
-          {footer ? <tfoot className="border-t bg-muted/50 font-medium">{footer}</tfoot> : null}
+          {footer ? <tfoot className="border-t border-(--glass-border) bg-white/45 font-medium dark:bg-white/[0.03]">{footer}</tfoot> : null}
         </table>
       </div>
       {pageSize && sorted.length > pageSize ? (

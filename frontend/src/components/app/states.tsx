@@ -9,14 +9,52 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError, errorMessage } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import { useDocumentTitle } from "./page";
+import { Medallion } from "./print";
+
+/**
+ * The mark at the top of empty, error and access states: an engraved medallion (a mint mark seeded by
+ * the icon, ringing it), so each kind of state always wears the same small engraving.
+ */
+export function IconTile({
+  icon,
+  tone = "neutral",
+  size = "md",
+  className,
+}: {
+  icon: LucideIcon;
+  tone?: "neutral" | "brand" | "danger";
+  size?: "sm" | "md" | "lg";
+  className?: string;
+}) {
+  return <Medallion icon={icon} tone={tone} size={size} className={className} />;
+}
+
+/**
+ * Loading placeholder with a soft light sweep (a translucent band crossing left to right). The sweep is
+ * off under reduced motion; the block itself stays as a quiet shape.
+ */
+export function Shimmer({ className, style }: { className?: string; style?: CSSProperties }) {
+  return (
+    <div
+      data-slot="skeleton"
+      className={cn("relative overflow-hidden rounded-md bg-foreground/[0.06] dark:bg-white/[0.06]", className)}
+      style={style}
+    >
+      <span
+        aria-hidden
+        className="animate-marquee absolute inset-y-0 left-full w-full bg-linear-to-r from-transparent via-white/55 to-transparent [animation-direction:reverse] motion-reduce:hidden dark:via-white/[0.07]"
+        style={{ "--gap": "100%", "--duration": "1.8s" } as CSSProperties}
+      />
+    </div>
+  );
+}
 
 /** Centered message for "nothing here yet" with an optional next step. */
 export function EmptyState({
@@ -42,9 +80,7 @@ export function EmptyState({
         className,
       )}
     >
-      <span className="grid size-10 place-items-center rounded-full bg-muted text-muted-foreground">
-        <Icon className="size-5" aria-hidden />
-      </span>
+      <IconTile icon={Icon} size={compact ? "sm" : "md"} />
       <div className="max-w-md space-y-1">
         <p className="font-heading text-[0.9375rem] font-medium text-foreground">{title}</p>
         {description ? <div className="text-sm leading-relaxed text-muted-foreground">{description}</div> : null}
@@ -128,10 +164,8 @@ export function ForbiddenState({ area, role, homeHref }: { area: string; role?: 
   useDocumentTitle(`No access to ${area}`);
   return (
     <div className="mx-auto max-w-xl py-10 sm:py-16">
-      <div className="rounded-2xl bg-card px-6 py-10 text-center ring-1 ring-foreground/10 sm:px-10">
-        <span className="mx-auto grid size-12 place-items-center rounded-full bg-muted text-muted-foreground">
-          <LockIcon className="size-5" aria-hidden />
-        </span>
+      <div className="rounded-3xl glass px-6 py-10 text-center sm:px-10">
+        <IconTile icon={LockIcon} size="lg" className="mx-auto" />
         <h1 className="mt-5 font-display text-2xl font-semibold tracking-[-0.02em]">You don’t have access to {area}</h1>
         <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
           {role ? `Your role (${role}) doesn’t include this area. ` : "Your role doesn’t include this area. "}
@@ -161,11 +195,9 @@ export function FullPageError({
   embedded?: boolean;
 }) {
   return (
-    <div className={cn("flex flex-1 items-center justify-center px-4", embedded ? "py-16" : "min-h-dvh bg-muted/60")}>
-      <div role="alert" className="w-full max-w-md rounded-2xl bg-card p-8 text-center ring-1 ring-foreground/10">
-        <span className="mx-auto grid size-11 place-items-center rounded-full bg-destructive/10 text-destructive">
-          <TriangleAlertIcon className="size-5" aria-hidden />
-        </span>
+    <div className={cn("flex flex-1 items-center justify-center px-4", embedded ? "py-16" : "min-h-dvh bg-(--canvas)")}>
+      <div role="alert" className="w-full max-w-md rounded-3xl glass-strong p-8 text-center">
+        <IconTile icon={TriangleAlertIcon} tone="danger" size="lg" className="mx-auto" />
         <h1 className="mt-4 font-display text-xl font-semibold">{title}</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{message}</p>
         <div className="mt-6 flex justify-center gap-2">
@@ -186,7 +218,7 @@ export function FullPageError({
 
 /** Generic skeleton block sized to the content it stands in for. */
 export function SkeletonBlock({ className }: { className?: string }) {
-  return <Skeleton className={cn("rounded-lg", className)} />;
+  return <Shimmer className={cn("rounded-lg", className)} />;
 }
 
 export function ChartSkeleton({ height = 260 }: { height?: number }) {
@@ -194,10 +226,10 @@ export function ChartSkeleton({ height = 260 }: { height?: number }) {
     <div className="flex flex-col gap-3" style={{ height }} aria-hidden>
       <div className="flex flex-1 items-end gap-2">
         {[0.45, 0.6, 0.52, 0.7, 0.66, 0.8, 0.74, 0.86, 0.78, 0.9, 0.84, 0.95].map((h, i) => (
-          <Skeleton key={i} className="flex-1 rounded-sm" style={{ height: `${h * 100}%` }} />
+          <Shimmer key={i} className="flex-1 rounded-t-md rounded-b-sm" style={{ height: `${h * 100}%` }} />
         ))}
       </div>
-      <Skeleton className="h-3 w-full rounded-sm" />
+      <Shimmer className="h-3 w-full rounded-sm" />
     </div>
   );
 }
@@ -205,11 +237,11 @@ export function ChartSkeleton({ height = 260 }: { height?: number }) {
 export function TableSkeleton({ rows = 6, columns = 5 }: { rows?: number; columns?: number }) {
   return (
     <div className="space-y-2" aria-hidden>
-      <Skeleton className="h-8 w-full" />
+      <Shimmer className="h-8 w-full rounded-lg" />
       {Array.from({ length: rows }, (_, r) => (
         <div key={r} className="grid gap-3" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
           {Array.from({ length: columns }, (_, c) => (
-            <Skeleton key={c} className="h-5" />
+            <Shimmer key={c} className="h-5" />
           ))}
         </div>
       ))}
@@ -257,8 +289,8 @@ export function Notice({
   return (
     <div
       className={cn(
-        "flex items-start gap-2.5 rounded-lg px-3.5 py-3 text-sm leading-relaxed",
-        tone === "info" && "bg-muted/70 text-foreground",
+        "flex items-start gap-2.5 rounded-xl px-3.5 py-3 text-sm leading-relaxed shadow-[inset_0_1px_0_var(--glass-edge)]",
+        tone === "info" && "bg-white/45 text-foreground ring-1 ring-(--glass-border) dark:bg-white/[0.04]",
         tone === "warning" && "bg-warning/12 text-foreground ring-1 ring-warning/30",
         tone === "danger" && "bg-destructive/6 text-foreground ring-1 ring-destructive/25",
         className,
@@ -267,7 +299,7 @@ export function Notice({
       <Icon
         className={cn(
           "mt-0.5 size-4 shrink-0",
-          tone === "info" && "text-muted-foreground",
+          tone === "info" && "text-primary/80",
           tone === "warning" && "text-warning",
           tone === "danger" && "text-destructive",
         )}

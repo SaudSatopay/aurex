@@ -1,20 +1,24 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLinkIcon, RotateCwIcon } from "lucide-react";
+import { RotateCwIcon } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import { useMemo, useState, type ReactNode } from "react";
 import { z } from "zod";
 
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import { CONNECTION_METHODS } from "./content";
+import { SHEET } from "./surface";
 
 /*
  * Public provider catalogue: GET /api/v1/public/integration-catalog.
- * Listing a provider is not a claim of a live connection; badges report availability and how far
- * the listed methods have been checked against the vendor's own documentation.
+ * Listing a provider is not a claim of a live connection; status marks report availability and how far
+ * the listed methods have been checked against the vendor's own documentation. Printed as a register:
+ * one sheet, one ruled line per provider, filtered from a strip of glassine.
  */
 
 const entrySchema = z.object({
@@ -52,10 +56,10 @@ const VERIFICATION: Record<string, { label: string; tone: Tone }> = {
 };
 
 const TONE_DOT: Record<Tone, string> = {
-  positive: "bg-success",
+  positive: "bg-verdigris",
   caution: "bg-warning",
-  neutral: "bg-chart-2",
-  negative: "bg-destructive",
+  neutral: "bg-prussian",
+  negative: "bg-oxblood",
   muted: "border-[1.5px] border-muted-foreground",
 };
 
@@ -143,9 +147,9 @@ function StatusLine({ tone, children }: { tone: Tone; children: ReactNode }) {
 
 function CatalogSkeleton() {
   return (
-    <div aria-hidden className="mt-8 border-t">
+    <div aria-hidden className={cn("mt-6 divide-y divide-rule overflow-hidden rounded-[0.9rem]", SHEET)}>
       {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="grid gap-4 border-b py-6 lg:grid-cols-12 lg:gap-8">
+        <div key={i} className="grid gap-4 p-5 sm:p-7 lg:grid-cols-12 lg:gap-8">
           <div className="space-y-2.5 lg:col-span-5">
             <Skeleton className="h-5 w-40" />
             <Skeleton className="h-3.5 w-28" />
@@ -169,14 +173,17 @@ function CatalogSkeleton() {
 
 function CatalogUnavailable({ onRetry, retrying }: { onRetry: () => void; retrying: boolean }) {
   return (
-    <div role="status" className="mt-8 rounded-xl border bg-muted/50 p-5 sm:p-6">
+    <div role="status" className={cn("mt-8 rounded-[0.9rem] p-5 sm:p-7", SHEET)}>
       <p className="font-medium">The provider catalogue can&apos;t be loaded right now.</p>
       <p className="mt-1.5 max-w-[72ch] text-[0.9375rem] leading-relaxed text-muted-foreground">
         Every provider connects through one of the methods described above:
       </p>
       <ul className="mt-3 flex flex-wrap gap-2">
         {CONNECTION_METHODS.map((method) => (
-          <li key={method.key} className="rounded-full border bg-background px-3 py-1 text-sm">
+          <li
+            key={method.key}
+            className="rounded-[0.4rem] bg-paper/70 px-2.5 py-1 text-sm shadow-[inset_0_0_0_1px_var(--rule)]"
+          >
             {method.name}
           </li>
         ))}
@@ -185,7 +192,7 @@ function CatalogUnavailable({ onRetry, retrying }: { onRetry: () => void; retryi
         type="button"
         onClick={onRetry}
         disabled={retrying}
-        className="mt-5 inline-flex h-9 items-center gap-2 rounded-lg border bg-background px-3.5 text-sm font-medium transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60"
+        className="press mt-5 inline-flex h-10 items-center gap-2 rounded-full bg-ink px-4 text-sm font-medium text-paper outline-none hover:bg-ink/90 focus-visible:ring-3 focus-visible:ring-prussian/50 disabled:opacity-60"
       >
         <RotateCwIcon className={cn("size-4", retrying && "animate-spin")} aria-hidden />
         {retrying ? "Trying again" : "Try again"}
@@ -202,22 +209,31 @@ function CatalogRow({ entry }: { entry: CatalogEntry }) {
   const docsUrl = safeHttpUrl(entry.docs_url);
 
   return (
-    <li className="grid gap-5 border-b py-6 lg:grid-cols-12 lg:gap-8">
+    <RevealItem
+      as="li"
+      y={12}
+      className="grid gap-5 border-t border-rule p-5 first:border-t-0 hover:bg-paper/55 sm:p-7 lg:grid-cols-12 lg:gap-8"
+    >
       <div className="lg:col-span-5">
-        <h3 className="font-display text-lg leading-snug font-semibold tracking-[-0.01em]">{entry.name}</h3>
+        <h3 className="font-display text-[1.375rem] leading-tight font-semibold tracking-[-0.02em]">{entry.name}</h3>
         {entry.categories.length > 0 ? (
-          <p className="mt-0.5 text-sm text-muted-foreground">{entry.categories.map(humanize).join(", ")}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{entry.categories.map(humanize).join(", ")}</p>
         ) : null}
         {entry.summary ? (
-          <p className="mt-3 max-w-[60ch] text-[0.9375rem] leading-relaxed">{entry.summary}</p>
+          <p className="mt-3 max-w-[60ch] text-[0.9375rem] leading-relaxed text-ink/85">{entry.summary}</p>
         ) : null}
       </div>
       <div className="lg:col-span-3">
         <p className="text-xs text-muted-foreground">Methods</p>
         {entry.methods.length > 0 ? (
-          <ul className="mt-1.5 space-y-1 text-sm">
+          <ul className="mt-2 flex flex-wrap gap-1.5 text-[0.8125rem]">
             {entry.methods.map((method) => (
-              <li key={method}>{methodLabel(method)}</li>
+              <li
+                key={method}
+                className="rounded-[0.4rem] bg-paper/70 px-2 py-1 shadow-[inset_0_0_0_1px_var(--rule)]"
+              >
+                {methodLabel(method)}
+              </li>
             ))}
           </ul>
         ) : (
@@ -244,20 +260,22 @@ function CatalogRow({ entry }: { entry: CatalogEntry }) {
             href={docsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-8 items-center gap-1.5 self-start rounded-md text-sm font-medium text-primary underline decoration-primary/30 underline-offset-4 outline-none hover:decoration-primary focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="press inline-flex h-9 items-center self-start rounded-[0.5rem] px-3 text-sm font-medium text-ink underline decoration-rule-strong underline-offset-4 shadow-[inset_0_0_0_1px_var(--rule-strong)] outline-none hover:bg-ink/[0.04] hover:decoration-ink focus-visible:ring-3 focus-visible:ring-prussian/50"
           >
             Vendor docs
-            <ExternalLinkIcon className="size-3.5" aria-hidden />
             <span className="sr-only">for {entry.name} (opens in a new tab)</span>
           </a>
         ) : null}
       </div>
-    </li>
+    </RevealItem>
   );
 }
 
 export function IntegrationCatalog() {
   const [category, setCategory] = useState<string | null>(null);
+  // The first view reveals as it scrolls in; after a filter is chosen the new list reveals at once.
+  const [filtered, setFiltered] = useState(false);
+  const still = useReducedMotion();
 
   const query = useQuery({
     queryKey: ["public", "integration-catalog"],
@@ -301,7 +319,7 @@ export function IntegrationCatalog() {
 
   if (entries.length === 0) {
     return (
-      <p role="status" className="mt-8 rounded-xl border bg-muted/50 p-5 text-[0.9375rem]">
+      <p role="status" className={cn("mt-8 rounded-[0.9rem] p-5 text-[0.9375rem] sm:p-7", SHEET)}>
         No providers are listed yet. Every connection method described above is available for your own systems.
       </p>
     );
@@ -313,35 +331,56 @@ export function IntegrationCatalog() {
 
   const chip = (selected: boolean) =>
     cn(
-      "inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-sm transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-      selected
-        ? "border-foreground bg-foreground text-background"
-        : "bg-background text-foreground hover:border-foreground/30 hover:bg-muted",
+      "press relative inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-prussian/50",
+      selected ? "text-paper" : "text-ink hover:bg-ink/[0.06]",
     );
+
+  const pick = (key: string | null) => {
+    setFiltered(true);
+    setCategory(key);
+  };
+
+  // The selected chip's ink pill slides to the next choice (critically damped; instant under reduced motion).
+  const pill = (
+    <motion.span
+      aria-hidden
+      layoutId="catalog-filter-pill"
+      transition={still ? { duration: 0 } : { type: "spring", bounce: 0, visualDuration: 0.38 }}
+      className="absolute inset-0 rounded-full bg-ink shadow-[inset_0_1px_0_oklch(1_0_0/0.16),0_0_0_1px_var(--gold-rule)]"
+    />
+  );
+
+  const stagger = Math.min(0.05, 0.6 / Math.max(visible.length, 1));
 
   return (
     <div>
       <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div role="group" aria-label="Filter providers by category" className="flex flex-wrap gap-2">
+        <div
+          role="group"
+          aria-label="Filter providers by category"
+          className="glass-strong flex flex-wrap gap-1 self-start rounded-[1.375rem] p-1"
+        >
           <button
             type="button"
             aria-pressed={activeCategory === null}
-            onClick={() => setCategory(null)}
+            onClick={() => pick(null)}
             className={chip(activeCategory === null)}
           >
-            All
-            <span className="tabular opacity-70">{entries.length}</span>
+            {activeCategory === null ? pill : null}
+            <span className="relative">All</span>
+            <span className="tabular relative opacity-70">{entries.length}</span>
           </button>
           {categories.map((c) => (
             <button
               key={c.key}
               type="button"
               aria-pressed={activeCategory === c.key}
-              onClick={() => setCategory(c.key)}
+              onClick={() => pick(c.key)}
               className={chip(activeCategory === c.key)}
             >
-              {c.label}
-              <span className="tabular opacity-70">{c.count}</span>
+              {activeCategory === c.key ? pill : null}
+              <span className="relative">{c.label}</span>
+              <span className="tabular relative opacity-70">{c.count}</span>
             </button>
           ))}
         </div>
@@ -351,11 +390,17 @@ export function IntegrationCatalog() {
         </p>
       </div>
 
-      <ul className="mt-6 border-t">
+      <RevealGroup
+        key={activeCategory ?? "all"}
+        as="ul"
+        onMount={filtered}
+        stagger={stagger}
+        className={cn("mt-6 overflow-hidden rounded-[0.9rem]", SHEET)}
+      >
         {visible.map((entry) => (
           <CatalogRow key={entry.key} entry={entry} />
         ))}
-      </ul>
+      </RevealGroup>
     </div>
   );
 }

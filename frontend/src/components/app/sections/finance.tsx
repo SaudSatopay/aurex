@@ -7,6 +7,7 @@ import { Meter } from "@/components/app/charts/sparkline";
 import { KPI_STATUS_TEXT } from "@/components/app/kpi";
 import { NoteList, Panel, Stat } from "@/components/app/page";
 import { EmptyState, Notice } from "@/components/app/states";
+import { NumberTicker } from "@/components/kit/number-ticker";
 import {
   formatDate,
   formatDays,
@@ -122,9 +123,9 @@ export function CashPanel({
           }
         />
       </div>
-      <dl className="mt-5 divide-y rounded-lg ring-1 ring-foreground/8">
+      <dl className="mt-5 divide-y divide-(--glass-border) overflow-hidden rounded-xl border border-(--glass-border) bg-white/40 dark:bg-white/[0.04]">
         {flows.map((flow) => (
-          <div key={flow.key} className="flex items-center justify-between px-3 py-2 text-[0.8125rem]">
+          <div key={flow.key} className="flex items-center justify-between px-3 py-2 text-[0.8125rem] transition-colors duration-200 hover:bg-white/50 dark:hover:bg-white/[0.04]">
             <dt className="text-muted-foreground">{flow.label} cash flow</dt>
             <dd className={cn("font-semibold tabular", (flow.value ?? 0) < 0 && "text-destructive")}>
               {flow.value === null || flow.value === undefined ? "Not available" : formatMoney(flow.value, currency, { compact: true, signed: true })}
@@ -197,7 +198,9 @@ export function HealthPanel({ health, className, dimmed }: { health: HealthScore
       }
     >
       <div className="flex items-end gap-3">
-        <p className="text-[2.75rem] leading-none font-semibold tracking-[-0.03em]">{formatScore(health.score)}</p>
+        <p className="numeral text-[3rem] leading-none font-semibold">
+          <NumberTicker value={health.score} format={formatScore} tabular={false} />
+        </p>
         <div className="pb-1">
           <p className="text-xs text-muted-foreground">out of 100</p>
           {grade ? <p className={cn("text-sm font-semibold", grade.tone)}>{grade.label}</p> : null}

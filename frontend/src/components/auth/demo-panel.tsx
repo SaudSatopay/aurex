@@ -4,11 +4,18 @@ import { useQuery } from "@tanstack/react-query";
 import { LoaderCircleIcon } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
+import { MintMark } from "@/components/art/ornaments";
+import { SpotlightCard } from "@/components/kit/spotlight-card";
+import { Reveal, RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { authApi, type DemoRole } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import { authErrorMessage } from "./errors";
 import { useAuthNavigation } from "./redirect";
+
+// A role tile on navy glass: rises and brightens under a fine pointer, gives under press.
+const INK_TILE =
+  "glass-ink transition-[translate,scale,background-color,opacity] duration-300 ease-(--ease-out) hover:-translate-y-[3px] hover:bg-white/[0.09] active:scale-[0.98]";
 
 /**
  * "Explore the live demo": one-click sign-in to NovaMart, the synthetic demo company. Hidden
@@ -59,67 +66,76 @@ export function DemoPanel() {
   }
 
   return (
-    <section
-      id="demo"
-      ref={panelRef}
-      aria-labelledby="demo-title"
-      className="mt-10 scroll-mt-24 overflow-hidden rounded-2xl bg-navy-900 text-white ring-1 ring-navy-900"
-    >
-      <div className="px-5 pt-6 pb-5 sm:px-6">
-        <h2 id="demo-title" className="font-display text-xl font-semibold tracking-[-0.01em]">
+    <section id="demo" ref={panelRef} aria-labelledby="demo-title" className="mt-14 scroll-mt-24 sm:mt-16">
+      <Reveal className="mx-auto max-w-[36rem] text-center">
+        <h2 id="demo-title" className="text-display text-[2.25rem] sm:text-[3rem]">
           Explore the live demo
         </h2>
-        <p className="mt-2 text-[0.9375rem] leading-relaxed text-navy-200">
+        <p className="mt-4 text-[0.9375rem] leading-relaxed text-paper/75">
           Sign in as any role at {organization}, a fictional retailer. Every figure in the demo is synthetic, so
           you can explore freely.
         </p>
-      </div>
+      </Reveal>
 
       {error ? (
-        <p role="alert" className="mx-5 mb-4 rounded-lg bg-white/8 px-3.5 py-3 text-sm leading-relaxed sm:mx-6">
+        <p
+          role="alert"
+          className="glass-ink mx-auto mt-6 max-w-[36rem] rounded-xl px-4 py-3 text-sm leading-relaxed text-paper"
+        >
           {error}
         </p>
       ) : null}
 
-      <ul className="border-t border-white/10" aria-busy={pendingRole ? true : undefined}>
-        {roles.map((role) => {
-          const isPending = pendingRole === role.role;
-          return (
-            <li key={role.role} className="border-b border-white/10 last:border-b-0">
-              <button
-                type="button"
-                onClick={() => void signInAs(role.role)}
-                disabled={pendingRole !== null}
-                className={cn(
-                  "group flex w-full items-start justify-between gap-4 px-5 py-4 text-left transition-colors outline-none sm:px-6",
-                  "hover:bg-white/5 focus-visible:bg-white/5 focus-visible:ring-2 focus-visible:ring-sky-accent focus-visible:ring-inset",
-                  "disabled:cursor-wait",
-                  pendingRole !== null && !isPending && "opacity-50",
-                )}
-              >
-                <span className="min-w-0">
-                  <span className="block font-medium text-white">{role.label}</span>
-                  {role.description ? (
-                    <span className="mt-0.5 block text-sm leading-relaxed text-navy-300">{role.description}</span>
-                  ) : null}
-                </span>
-                <span className="mt-0.5 shrink-0 text-sm font-medium text-sky-accent">
-                  {isPending ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <LoaderCircleIcon className="size-4 animate-spin" aria-hidden />
-                      Opening
-                    </span>
-                  ) : (
-                    <span className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-                      Sign in
-                    </span>
+      <RevealGroup stagger={0.05} delay={0.05} className="mt-8">
+        <ul className="grid gap-3 sm:grid-cols-2" aria-busy={pendingRole ? true : undefined}>
+          {roles.map((role) => {
+            const isPending = pendingRole === role.role;
+            return (
+              <RevealItem as="li" key={role.role} y={14} className="sm:[&:last-child:nth-child(odd)]:col-span-2">
+                <SpotlightCard surface="plate" className="h-full rounded-2xl" radius={180}>
+                <button
+                  type="button"
+                  onClick={() => void signInAs(role.role)}
+                  disabled={pendingRole !== null}
+                  className={cn(
+                    "group flex h-full w-full items-start gap-4 rounded-2xl px-5 py-4 text-left outline-none",
+                    INK_TILE,
+                    "focus-visible:ring-2 focus-visible:ring-gold",
+                    "disabled:cursor-wait disabled:hover:translate-y-0",
+                    isPending && "bg-white/[0.1]",
+                    pendingRole !== null && !isPending && "opacity-50",
                   )}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+                >
+                  <MintMark
+                    name={role.role}
+                    tone="gold"
+                    className="size-11 shrink-0 opacity-80 transition-transform duration-700 ease-(--ease-out) group-hover:rotate-[36deg] motion-reduce:transition-none"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-display text-[1.125rem] leading-tight font-semibold text-paper">{role.label}</span>
+                    {role.description ? (
+                      <span className="mt-1 block text-sm leading-relaxed text-paper/70">{role.description}</span>
+                    ) : null}
+                  </span>
+                  <span className="mt-0.5 shrink-0 text-sm font-medium text-gold">
+                    {isPending ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <LoaderCircleIcon className="size-4 animate-spin" aria-hidden />
+                        Opening
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 opacity-0 transition-[opacity,translate] duration-300 ease-(--ease-out) group-hover:translate-x-0.5 group-hover:opacity-100 group-focus-visible:opacity-100">
+                        Sign in
+                      </span>
+                    )}
+                  </span>
+                </button>
+                </SpotlightCard>
+              </RevealItem>
+            );
+          })}
+        </ul>
+      </RevealGroup>
     </section>
   );
 }

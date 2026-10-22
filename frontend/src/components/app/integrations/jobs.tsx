@@ -29,11 +29,11 @@ function Count({ value, danger }: { value: number | undefined | null; danger?: b
 export function EntityStatsTable({ stats }: { stats: (EntityStats & { entity: string })[] }) {
   if (!stats.length) return <p className="text-sm text-muted-foreground">No per-record-type statistics were reported.</p>;
   return (
-    <div className="overflow-x-auto rounded-lg ring-1 ring-foreground/8" role="region" aria-label="Records by type" tabIndex={0}>
-      <table className="w-full border-collapse text-[0.8125rem]">
+    <div className="overflow-x-auto rounded-xl bg-white/30 ring-1 ring-(--glass-border) dark:bg-white/[0.02]" role="region" aria-label="Records by type" tabIndex={0}>
+      <table className="w-full border-collapse text-[0.8125rem] tabular-nums">
         <caption className="sr-only">Records by type</caption>
-        <thead className="bg-muted/60 text-muted-foreground">
-          <tr className="border-b">
+        <thead className="bg-white/55 text-muted-foreground backdrop-blur-md dark:bg-white/[0.04]">
+          <tr className="border-b border-(--glass-border)">
             <th scope="col" className="px-3 py-2 text-left font-medium">Record type</th>
             <th scope="col" className="px-3 py-2 text-right font-medium">Received</th>
             <th scope="col" className="px-3 py-2 text-right font-medium">Inserted</th>
@@ -46,7 +46,7 @@ export function EntityStatsTable({ stats }: { stats: (EntityStats & { entity: st
         <tbody>
           {stats.map((s) => (
             <Fragment key={s.entity}>
-              <tr className="border-b last:border-b-0">
+              <tr className="border-b border-(--glass-border) transition-colors duration-200 last:border-b-0 hover:bg-primary/[0.035] dark:hover:bg-white/[0.035]">
                 <th scope="row" className="px-3 py-2 text-left font-medium">
                   {humanize(s.entity)}
                 </th>
@@ -60,7 +60,7 @@ export function EntityStatsTable({ stats }: { stats: (EntityStats & { entity: st
                 </td>
               </tr>
               {(s.error_counts && Object.keys(s.error_counts).length) || s.notes?.length ? (
-                <tr className="border-b bg-muted/25 last:border-b-0">
+                <tr className="border-b border-(--glass-border) bg-white/30 last:border-b-0 dark:bg-white/[0.02]">
                   <td colSpan={7} className="px-3 py-2 text-xs leading-relaxed text-muted-foreground">
                     {s.error_counts && Object.keys(s.error_counts).length ? (
                       <p>
@@ -100,11 +100,11 @@ export function JobsTable({ jobs, showIntegration, empty }: { jobs: SyncJob[]; s
       return next;
     });
   return (
-    <div className="overflow-x-auto rounded-lg ring-1 ring-foreground/8" role="region" aria-label="Sync history" tabIndex={0}>
-      <table className="w-full border-collapse text-[0.8125rem]">
+    <div className="overflow-x-auto rounded-xl bg-white/30 ring-1 ring-(--glass-border) dark:bg-white/[0.02]" role="region" aria-label="Sync history" tabIndex={0}>
+      <table className="w-full border-collapse text-[0.8125rem] tabular-nums">
         <caption className="sr-only">Sync history</caption>
-        <thead className="bg-muted/60 text-muted-foreground">
-          <tr className="border-b">
+        <thead className="bg-white/55 text-muted-foreground backdrop-blur-md dark:bg-white/[0.04]">
+          <tr className="border-b border-(--glass-border)">
             <th scope="col" className="w-8 px-2 py-2">
               <span className="sr-only">Details</span>
             </th>
@@ -127,16 +127,16 @@ export function JobsTable({ jobs, showIntegration, empty }: { jobs: SyncJob[]; s
             const when = job.started_at ?? job.queued_at;
             return (
               <Fragment key={job.id}>
-                <tr className="border-b last:border-b-0 hover:bg-muted/30">
+                <tr className="border-b border-(--glass-border) transition-colors duration-200 last:border-b-0 hover:bg-primary/[0.035] dark:hover:bg-white/[0.035]">
                   <td className="px-2 py-2 align-middle">
                     <button
                       type="button"
                       onClick={() => toggle(job.id)}
                       aria-expanded={expanded}
                       aria-label={expanded ? "Hide records by type" : "Show records by type"}
-                      className="grid size-6 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                      className="press grid size-6 place-items-center rounded-lg text-muted-foreground outline-none hover:bg-white/70 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 dark:hover:bg-white/[0.08]"
                     >
-                      <ChevronRightIcon className={cn("size-4 transition-transform", expanded && "rotate-90")} aria-hidden />
+                      <ChevronRightIcon className={cn("size-4 transition-transform duration-300 ease-(--ease-out)", expanded && "rotate-90")} aria-hidden />
                     </button>
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">
@@ -169,7 +169,7 @@ export function JobsTable({ jobs, showIntegration, empty }: { jobs: SyncJob[]; s
                   </td>
                 </tr>
                 {expanded ? (
-                  <tr className="border-b bg-muted/20 last:border-b-0">
+                  <tr className="border-b border-(--glass-border) bg-white/30 last:border-b-0 dark:bg-white/[0.02]">
                     <td colSpan={showIntegration ? 11 : 10} className="px-3 py-3">
                       {job.error_message ? <p className="mb-2 text-sm text-destructive">{job.error_message}</p> : null}
                       <EntityStatsTable stats={stats} />

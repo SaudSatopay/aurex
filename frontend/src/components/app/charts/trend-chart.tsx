@@ -17,8 +17,8 @@ import {
 
 import { parseDate } from "@/lib/app/format";
 
-import { ChartLegend, TooltipCard, type LegendItem } from "./chart-parts";
-import { AXIS_TEXT, GRID_COLOR } from "./palette";
+import { AreaGradient, BarGradient, ChartLegend, TooltipCard, useChartAnimation, useGradientId, type LegendItem } from "./chart-parts";
+import { AXIS_TEXT, CURSOR_BAND, CURSOR_LINE, GRID_COLOR, GRID_SOFT } from "./palette";
 
 export type TrendSeries = {
   key: string;
@@ -102,6 +102,8 @@ export function TrendChart({
   timeAxis?: boolean;
   ariaLabel: string;
 }) {
+  const animation = useChartAnimation();
+  const gradientId = useGradientId("trend");
   const legendItems: LegendItem[] = series.map((s) => ({
     label: s.label,
     color: s.color,
@@ -140,7 +142,16 @@ export function TrendChart({
       <div style={{ height }} className="min-w-0">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ top: 6, right: 8, bottom: 0, left: 0 }} barCategoryGap="28%">
-            <CartesianGrid vertical={false} stroke={GRID_COLOR} />
+            <defs>
+              {series.map((s, i) =>
+                s.kind === "bar" ? (
+                  <BarGradient key={s.key} id={`${gradientId}-${i}`} color={s.color} />
+                ) : s.kind === "area" ? (
+                  <AreaGradient key={s.key} id={`${gradientId}-${i}`} color={s.color} from={0.26} />
+                ) : null,
+              )}
+            </defs>
+            <CartesianGrid vertical={false} {...GRID_SOFT} />
             <XAxis
               dataKey={timeAxis ? "__t" : xKey}
               type={timeAxis ? "number" : "category"}
@@ -166,19 +177,19 @@ export function TrendChart({
             {zeroLine ? <ReferenceLine y={0} stroke={AXIS_TEXT} strokeOpacity={0.5} /> : null}
             <Tooltip
               content={renderTooltip}
-              cursor={hasBars ? { fill: "var(--muted)", fillOpacity: 0.6 } : { stroke: AXIS_TEXT, strokeWidth: 1 }}
+              cursor={hasBars ? CURSOR_BAND : CURSOR_LINE}
               isAnimationActive={false}
             />
-            {series.map((s) =>
+            {series.map((s, i) =>
               s.kind === "bar" ? (
                 <Bar
                   key={s.key}
                   dataKey={s.key}
                   name={s.label}
-                  fill={s.color}
+                  fill={`url(#${gradientId}-${i})`}
                   maxBarSize={24}
-                  radius={[4, 4, 0, 0]}
-                  isAnimationActive={false}
+                  radius={[6, 6, 0, 0]}
+                  {...animation}
                 />
               ) : s.kind === "area" ? (
                 <Area
@@ -188,12 +199,12 @@ export function TrendChart({
                   name={s.label}
                   stroke={s.color}
                   strokeWidth={2}
-                  fill={s.color}
-                  fillOpacity={0.1}
+                  fill={`url(#${gradientId}-${i})`}
+                  fillOpacity={1}
                   dot={false}
-                  activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--card)" }}
+                  activeDot={{ r: 4.5, strokeWidth: 2, stroke: "var(--card)" }}
                   connectNulls={false}
-                  isAnimationActive={false}
+                  {...animation}
                 />
               ) : (
                 <Line
@@ -203,10 +214,11 @@ export function TrendChart({
                   name={s.label}
                   stroke={s.color}
                   strokeWidth={2}
+                  strokeLinecap="round"
                   dot={false}
-                  activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--card)" }}
+                  activeDot={{ r: 4.5, strokeWidth: 2, stroke: "var(--card)" }}
                   connectNulls={false}
-                  isAnimationActive={false}
+                  {...animation}
                 />
               ),
             )}

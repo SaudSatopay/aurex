@@ -1,6 +1,7 @@
 "use client";
 
 import { PanelLeftCloseIcon, PanelLeftOpenIcon } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -32,6 +33,7 @@ function NavLink({
   onNavigate?: () => void;
 }) {
   const Icon = item.icon;
+  const still = useReducedMotion();
   const link = (
     <Link
       href={href}
@@ -39,24 +41,31 @@ function NavLink({
       aria-current={active ? "page" : undefined}
       aria-label={collapsed ? item.label : undefined}
       className={cn(
-        "group/nav relative flex h-9 items-center gap-3 rounded-md text-[0.875rem] font-medium transition-colors outline-none",
+        "group/nav relative flex h-9 items-center gap-3 rounded-lg text-[0.875rem] font-medium transition-colors duration-200 outline-none",
         "focus-visible:ring-2 focus-visible:ring-sky-accent focus-visible:ring-offset-0",
         collapsed ? "justify-center px-0" : "px-2.5",
-        active
-          ? "bg-sidebar-accent text-white"
-          : "text-sidebar-foreground/72 hover:bg-white/6 hover:text-white",
+        active ? "text-white" : "text-sidebar-foreground/72 hover:bg-white/[0.06] hover:text-white",
       )}
     >
-      {/* Active marker: the sky accent used by the public site's navigation. */}
-      <span
-        aria-hidden
+      {/* Active pill: one glass lozenge that glides between items (a spring, so it can be redirected). */}
+      {active ? (
+        <motion.span
+          aria-hidden
+          layoutId={collapsed ? "nav-active-rail" : "nav-active"}
+          transition={still ? { duration: 0 } : { type: "spring", bounce: 0.12, visualDuration: 0.38 }}
+          className="absolute inset-0 rounded-lg bg-[oklch(0.96_0.02_90/0.07)] shadow-[inset_0_1px_0_oklch(0.9_0.085_92/0.22),0_0_0_1px_oklch(0.9_0.085_92/0.14)]"
+        >
+          <span className="absolute top-2 bottom-2 left-0 w-[3px] rounded-full bg-gold" />
+        </motion.span>
+      ) : null}
+      <Icon
         className={cn(
-          "absolute top-2 bottom-2 left-0 w-0.5 rounded-full bg-sky-accent transition-opacity",
-          active ? "opacity-100" : "opacity-0",
+          "relative size-[1.05rem] shrink-0 transition-transform duration-300 ease-(--ease-out) group-hover/nav:scale-110",
+          active ? "text-sky-accent" : "text-current",
         )}
+        aria-hidden
       />
-      <Icon className={cn("size-[1.05rem] shrink-0", active ? "text-sky-accent" : "text-current")} aria-hidden />
-      {collapsed ? null : <span className="truncate">{item.label}</span>}
+      {collapsed ? null : <span className="relative truncate">{item.label}</span>}
     </Link>
   );
   if (!collapsed) return link;
@@ -126,7 +135,7 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "sticky top-0 hidden h-dvh shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-200 ease-out lg:flex",
+        "sticky top-0 z-10 hidden h-dvh shrink-0 flex-col bg-sidebar bg-[image:repeating-linear-gradient(115deg,oklch(0.9_0.085_92/0.035)_0_1px,transparent_1px_7px)] text-sidebar-foreground shadow-[inset_-1px_0_0_var(--gold-rule),12px_0_40px_-24px_oklch(0.12_0.04_264/0.6)] transition-[width] duration-300 ease-(--ease-out) lg:flex",
         collapsed ? "w-[3.75rem]" : "w-60",
       )}
     >

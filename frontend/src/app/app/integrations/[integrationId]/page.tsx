@@ -21,13 +21,14 @@ import { toast } from "sonner";
 import { PermissionGate, RequireAccess } from "@/components/app/access";
 import { AppPage } from "@/components/app/app-page";
 import { IntegrationStatusBadge, integrationStatusInfo, SyntheticFeedBadge, VerificationBadge } from "@/components/app/badges";
-import { ResearchDetails, useEntities } from "@/components/app/integrations/catalog";
+import { ProviderMark, ResearchDetails, useEntities } from "@/components/app/integrations/catalog";
 import { ACTIVE_JOB, JobsTable } from "@/components/app/integrations/jobs";
 import { UploadPanel } from "@/components/app/integrations/upload-panel";
 import { DetailList, NoteList, PageHeader, Panel } from "@/components/app/page";
 import { Pagination } from "@/components/app/pagination";
 import { useSession } from "@/components/app/session-provider";
 import { EmptyState, ErrorState, Notice, TableSkeleton } from "@/components/app/states";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -131,7 +132,7 @@ function TestResultView({ result, testedAt }: { result: TestResult | null; teste
         </span>
       </p>
       {result.checks?.length ? (
-        <ul className="space-y-1 rounded-lg bg-muted/50 px-3 py-2 text-[0.8125rem]">
+        <ul className="space-y-1 rounded-xl border border-(--glass-border) bg-paper/55 px-3 py-2 text-[0.8125rem]">
           {result.checks.map((check, i) => (
             <li key={`${check.name}-${i}`} className="flex items-start gap-2">
               {check.ok ? (
@@ -156,7 +157,7 @@ function ConfigValue({ value }: { value: unknown }) {
   if (typeof value === "object") {
     const keys = Object.keys(value as object);
     if (!keys.length) return <span className="text-muted-foreground">Empty</span>;
-    return <pre className="max-h-48 overflow-auto rounded-md bg-muted px-2.5 py-1.5 font-mono text-xs whitespace-pre-wrap break-all">{JSON.stringify(value, null, 2)}</pre>;
+    return <pre className="max-h-48 overflow-auto rounded-lg border border-(--glass-border) bg-paper/55 px-2.5 py-1.5 font-mono text-xs whitespace-pre-wrap break-all">{JSON.stringify(value, null, 2)}</pre>;
   }
   return <span className="font-mono text-xs break-all">{String(value)}</span>;
 }
@@ -237,6 +238,7 @@ function IntegrationView({ integration }: { integration: IntegrationDetail }) {
         description={integration.status_detail ?? statusInfo.hint}
         meta={
           <>
+            <ProviderMark provider={integration.provider_key} className="size-8" />
             <IntegrationStatusBadge status={integration.status} />
             {integration.is_demo ? <SyntheticFeedBadge /> : null}
             <span>{integration.provider_name}</span>
@@ -274,8 +276,9 @@ function IntegrationView({ integration }: { integration: IntegrationDetail }) {
           </Notice>
         ) : null}
 
-        <div className="grid gap-6 xl:grid-cols-2">
-          <Panel title="Status" description={statusInfo.hint}>
+        <RevealGroup className="grid gap-6 xl:grid-cols-2" stagger={0.05} onMount>
+          <RevealItem className="flex min-w-0" y={12}>
+          <Panel className="w-full" title="Status" description={statusInfo.hint}>
             <div className="space-y-5">
               <DetailList
                 items={[
@@ -315,8 +318,10 @@ function IntegrationView({ integration }: { integration: IntegrationDetail }) {
               </div>
             </div>
           </Panel>
+          </RevealItem>
 
-          <Panel title="Controls" description="Schedule and availability of this connection">
+          <RevealItem className="flex min-w-0" y={12}>
+          <Panel className="w-full" title="Controls" description="Schedule and availability of this connection">
             <div className="space-y-5">
               {live ? (
                 <div className="space-y-1.5">
@@ -367,7 +372,7 @@ function IntegrationView({ integration }: { integration: IntegrationDetail }) {
                   <p className="text-sm font-medium">Signing secret</p>
                   {newSecret ? (
                     <div className="space-y-1.5">
-                      <code className="block rounded-md bg-muted px-3 py-2 font-mono text-xs break-all">{newSecret}</code>
+                      <code className="block rounded-lg border border-(--glass-border) bg-paper/55 px-3 py-2 font-mono text-xs break-all">{newSecret}</code>
                       <p className="text-xs text-muted-foreground">Shown once. The previous secret stopped working immediately.</p>
                     </div>
                   ) : (
@@ -396,7 +401,7 @@ function IntegrationView({ integration }: { integration: IntegrationDetail }) {
               ) : null}
 
               <PermissionGate permission={PERMISSIONS.integrationsManage}>
-                <div className="flex flex-wrap gap-2 border-t pt-4">
+                <div className="flex flex-wrap gap-2 border-t border-(--glass-border) pt-4">
                   {disabled ? (
                     <Button variant="outline" onClick={() => update.mutate({ disabled: false })} disabled={update.isPending}>
                       <PowerIcon aria-hidden />
@@ -452,7 +457,8 @@ function IntegrationView({ integration }: { integration: IntegrationDetail }) {
               </PermissionGate>
             </div>
           </Panel>
-        </div>
+          </RevealItem>
+        </RevealGroup>
 
         {uploads && canImport && !disabled ? (
           entities.data ? (
@@ -480,8 +486,9 @@ function IntegrationView({ integration }: { integration: IntegrationDetail }) {
 
         <JobsPanel integrationId={integration.id} />
 
-        <div className="grid gap-6 xl:grid-cols-2">
-          <Panel title="Configuration" description="Settings stored with the connection. Secrets are never shown.">
+        <RevealGroup className="grid gap-6 xl:grid-cols-2" stagger={0.05}>
+          <RevealItem className="flex min-w-0" y={12}>
+          <Panel className="w-full" title="Configuration" description="Settings stored with the connection. Secrets are never shown.">
             {integration.config === null ? (
               <p className="text-sm text-muted-foreground">Configuration is visible to members who can manage integrations.</p>
             ) : configEntries.length ? (
@@ -490,8 +497,11 @@ function IntegrationView({ integration }: { integration: IntegrationDetail }) {
               <p className="text-sm text-muted-foreground">No settings.</p>
             )}
           </Panel>
+          </RevealItem>
           {integration.provider ? (
+            <RevealItem className="flex min-w-0" y={12}>
             <Panel
+              className="w-full"
               title="About the provider"
               description={integration.provider.summary}
               actions={<VerificationBadge status={integration.provider.verification_status} />}
@@ -521,8 +531,9 @@ function IntegrationView({ integration }: { integration: IntegrationDetail }) {
                 ) : null}
               </div>
             </Panel>
+            </RevealItem>
           ) : null}
-        </div>
+        </RevealGroup>
       </div>
     </>
   );

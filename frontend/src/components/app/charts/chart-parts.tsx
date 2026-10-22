@@ -1,7 +1,8 @@
 "use client";
 
 import { ChartColumnIcon, TableIcon } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useReducedMotion } from "motion/react";
+import { useId, useState, type ReactNode } from "react";
 
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
@@ -32,7 +33,7 @@ export type TooltipRow = { key: string; label: string; color: string; value: Rea
 /** Tooltip card: the value leads (strong), the series name follows; a short line key carries identity. */
 export function TooltipCard({ title, rows, footer }: { title: ReactNode; rows: TooltipRow[]; footer?: ReactNode }) {
   return (
-    <div className="min-w-40 rounded-lg bg-popover px-3 py-2.5 text-xs text-popover-foreground shadow-md ring-1 ring-foreground/10">
+    <div className="min-w-40 rounded-xl glass-strong px-3 py-2.5 text-xs text-popover-foreground">
       <p className="mb-1.5 font-medium text-foreground">{title}</p>
       <ul className="space-y-1">
         {rows.map((row) => (
@@ -43,7 +44,7 @@ export function TooltipCard({ title, rows, footer }: { title: ReactNode; rows: T
           </li>
         ))}
       </ul>
-      {footer ? <div className="mt-1.5 border-t pt-1.5 text-muted-foreground">{footer}</div> : null}
+      {footer ? <div className="mt-1.5 border-t border-(--glass-border) pt-1.5 text-muted-foreground">{footer}</div> : null}
     </div>
   );
 }
@@ -83,5 +84,43 @@ export function ChartFigure({ label, children, className }: { label: string; chi
     <figure className={cn("min-w-0", className)} aria-label={label}>
       {children}
     </figure>
+  );
+}
+
+/**
+ * Recharts entrance: series draw in on a ~800 ms ease-out the first time they mount and when the
+ * data changes. Under reduced motion they are simply there. Spread onto Line / Area / Bar / Pie.
+ */
+export function useChartAnimation(duration = 800) {
+  const still = useReducedMotion();
+  return still
+    ? ({ isAnimationActive: false } as const)
+    : ({ isAnimationActive: true, animationDuration: duration, animationEasing: "ease-out" } as const);
+}
+
+/** A unique, url()-safe id prefix for SVG gradients inside one chart. */
+export function useGradientId(prefix = "g") {
+  return `${prefix}-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+}
+
+/** Vertical wash under an area line: the series colour fading to nothing at the baseline. */
+export function AreaGradient({ id, color, from = 0.3 }: { id: string; color: string; from?: number; to?: number }) {
+  // Engraved tone: fine diagonal hatching in the series ink over the faintest wash, as on a printed plate.
+  const ink = Math.min(0.8, from * 2.1);
+  return (
+    <pattern id={id} patternUnits="userSpaceOnUse" width={4.5} height={4.5} patternTransform="rotate(-38)">
+      <rect width={4.5} height={4.5} fill={color} fillOpacity={from * 0.22} />
+      <line x1={0} y1={0} x2={0} y2={4.5} stroke={color} strokeOpacity={ink} strokeWidth={0.9} />
+    </pattern>
+  );
+}
+
+/** Bars printed in solid ink with a fine engraved highlight running through them. */
+export function BarGradient({ id, color }: { id: string; color: string; horizontal?: boolean }) {
+  return (
+    <pattern id={id} patternUnits="userSpaceOnUse" width={4} height={4} patternTransform="rotate(-38)">
+      <rect width={4} height={4} fill={color} />
+      <line x1={0} y1={0} x2={0} y2={4} stroke="oklch(1 0 0)" strokeOpacity={0.24} strokeWidth={1} />
+    </pattern>
   );
 }

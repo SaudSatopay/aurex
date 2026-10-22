@@ -12,6 +12,8 @@ import { factLabel } from "@/components/app/freshness";
 import { NoteList, PageHeader, Panel, Stat } from "@/components/app/page";
 import { useSession } from "@/components/app/session-provider";
 import { EmptyState, ErrorState, TableSkeleton } from "@/components/app/states";
+import { NumberTicker } from "@/components/kit/number-ticker";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { useFilters } from "@/hooks/use-filters";
 import { useOrgQuery } from "@/hooks/use-org-query";
 import { formatDate, formatDateTime, formatNumber, formatPercent, formatRelative, humanize } from "@/lib/app/format";
@@ -29,6 +31,10 @@ export default function DataQualityPage() {
     </AppPage>
   );
 }
+
+/** One figure in a glass ledger: hairline dividers, a soft wash on hover. */
+const LEDGER_CELL =
+  "border-t border-l border-(--glass-border) p-4 transition-colors duration-300 ease-(--ease-out) hover:bg-white/50 sm:p-5 dark:hover:bg-white/[0.04]";
 
 type SourceRow = FreshnessSource & { fact: string; factLatest: string | null; multiple: boolean };
 
@@ -161,26 +167,32 @@ function Quality() {
     <>
       {header}
       <div className="space-y-6">
-        <div className="grid gap-px overflow-hidden rounded-xl bg-border ring-1 ring-foreground/10 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="bg-card p-4 sm:p-5">
+        <div className="overflow-hidden rounded-2xl glass">
+          <div className="-mt-px -ml-px grid sm:grid-cols-2 xl:grid-cols-4">
+          <div className={LEDGER_CELL}>
             <Stat label="Sales data through" value={data.data_end ? formatDate(data.data_end) : "No sales yet"} hint={data.data_start ? `Starting ${formatDate(data.data_start)}` : undefined} />
           </div>
-          <div className="bg-card p-4 sm:p-5">
+          <div className={LEDGER_CELL}>
             <Stat
               label="Cost coverage"
               value={formatPercent(data.cost_coverage, { decimals: 1 })}
               hint="Share of net sales whose cost of goods is known; margins use only covered sales"
             />
           </div>
-          <div className="bg-card p-4 sm:p-5">
+          <div className={LEDGER_CELL}>
             <Stat
               label="Store-days with overlapping sources"
-              value={formatNumber(data.store_days_with_multiple_sources)}
+              value={<NumberTicker value={data.store_days_with_multiple_sources} format={(n) => formatNumber(Math.round(n))} />}
               hint="Counted once, from the system of record"
             />
           </div>
-          <div className="bg-card p-4 sm:p-5">
-            <Stat label="Rejected rows logged" value={formatNumber(rejected)} hint={`${data.rejection_reasons.length} distinct reasons`} />
+          <div className={LEDGER_CELL}>
+            <Stat
+              label="Rejected rows logged"
+              value={<NumberTicker value={rejected} format={(n) => formatNumber(Math.round(n))} />}
+              hint={`${data.rejection_reasons.length} distinct reasons`}
+            />
+          </div>
           </div>
         </div>
 
@@ -192,11 +204,14 @@ function Quality() {
           <DataTable caption="Freshness by data type and source" columns={sourceColumns} rows={sourceRows} rowKey={(r) => `${r.fact}-${r.integration_id}`} dense defaultSort={{ key: "fact", dir: "asc" }} />
         </Panel>
 
-        <div className="grid gap-6 xl:grid-cols-5">
-          <Panel className="xl:col-span-3" title="Store completeness" description="Days with sales since each store opened (or since data starts)">
+        <RevealGroup className="grid gap-6 xl:grid-cols-5" stagger={0.05}>
+          <RevealItem className="flex min-w-0 xl:col-span-3" y={12}>
+          <Panel className="w-full" title="Store completeness" description="Days with sales since each store opened (or since data starts)">
             <DataTable caption="Store completeness" columns={completenessColumns} rows={data.store_completeness} rowKey={(r) => r.store} dense defaultSort={{ key: "completeness", dir: "asc" }} />
           </Panel>
-          <Panel className="xl:col-span-2" title="Why rows were rejected" description="Validation errors across all imports">
+          </RevealItem>
+          <RevealItem className="flex min-w-0 xl:col-span-2" y={12}>
+          <Panel className="w-full" title="Why rows were rejected" description="Validation errors across all imports">
             {data.rejection_reasons.length ? (
               <BarList
                 label="Rejected rows by reason"
@@ -206,7 +221,8 @@ function Quality() {
               <EmptyState compact title="No rejected rows" description="Every imported row passed validation." />
             )}
           </Panel>
-        </div>
+          </RevealItem>
+        </RevealGroup>
 
         <Panel title="Recent imports" description="The last ten sync jobs across all integrations">
           <DataTable caption="Recent imports" columns={jobColumns} rows={data.recent_jobs} rowKey={(r) => r.id} dense empty={<EmptyState compact title="No imports yet" />} />

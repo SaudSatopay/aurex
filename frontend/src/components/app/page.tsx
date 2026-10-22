@@ -2,6 +2,7 @@
 
 import { useEffect, useId, type ReactNode } from "react";
 
+import { WaveBand } from "@/components/art/ornaments";
 import { cn } from "@/lib/utils";
 
 /**
@@ -38,9 +39,10 @@ export function PageHeader({
 }) {
   useDocumentTitle(title);
   return (
-    <div className={cn("mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between", className)}>
+    <div className={cn("mb-7", className)}>
+    <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div className="min-w-0">
-        <h1 className="font-display text-[1.625rem] leading-tight font-semibold tracking-[-0.022em] text-balance sm:text-[1.875rem]">
+        <h1 className="text-display text-[2.375rem] sm:text-[3.25rem]">
           {title}
         </h1>
         {description ? (
@@ -49,6 +51,8 @@ export function PageHeader({
         {meta ? <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">{meta}</div> : null}
       </div>
       {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
+    </div>
+    <WaveBand tone="ink" className="mt-5 h-4" waves={16} copies={4} strokeWidth={0.7} />
     </div>
   );
 }
@@ -79,7 +83,7 @@ export function Panel({
     <section
       aria-labelledby={title ? headingId : undefined}
       aria-busy={dimmed || undefined}
-      className={cn("flex min-w-0 flex-col rounded-xl bg-card text-card-foreground ring-1 ring-foreground/10", className)}
+      className={cn("flex min-w-0 flex-col rounded-2xl glass text-card-foreground", className)}
     >
       {title || actions ? (
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 px-4 pt-4 sm:px-5">
@@ -115,7 +119,7 @@ export function SectionHeading({ title, description, actions, id }: { title: str
   return (
     <div className="mt-10 mb-4 flex flex-wrap items-end justify-between gap-3 first:mt-0">
       <div>
-        <h2 id={id} className="font-display text-lg font-semibold tracking-[-0.015em]">
+        <h2 id={id} className="font-display text-[1.25rem] font-semibold tracking-[-0.025em]">
           {title}
         </h2>
         {description ? <p className="mt-0.5 text-sm text-muted-foreground">{description}</p> : null}
@@ -154,7 +158,7 @@ export function Stat({
   return (
     <div className={cn("min-w-0", className)}>
       <p className="text-[0.8125rem] text-muted-foreground">{label}</p>
-      <p className="mt-1 text-xl leading-tight font-semibold tracking-[-0.01em] text-foreground">{value}</p>
+      <p className="numeral mt-1 text-[1.5rem] leading-tight font-semibold text-foreground">{value}</p>
       {hint ? <p className="mt-1 text-xs leading-snug text-muted-foreground">{hint}</p> : null}
     </div>
   );

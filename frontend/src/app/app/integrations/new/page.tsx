@@ -7,10 +7,12 @@ import { useSearchParams } from "next/navigation";
 import { RequireAccess } from "@/components/app/access";
 import { AppPage } from "@/components/app/app-page";
 import { AvailabilityBadge } from "@/components/app/badges";
-import { isConnectable, useCatalog, useEntities } from "@/components/app/integrations/catalog";
+import { isConnectable, ProviderMark, useCatalog, useEntities } from "@/components/app/integrations/catalog";
 import { ConnectionForm } from "@/components/app/integrations/connection-form";
 import { PageHeader, Panel } from "@/components/app/page";
 import { EmptyState, ErrorState, TableSkeleton } from "@/components/app/states";
+import { SpotlightCard } from "@/components/kit/spotlight-card";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 import { useOrgQuery } from "@/hooks/use-org-query";
 import { categoryLabel, methodLabel } from "@/lib/app/labels";
@@ -80,13 +82,15 @@ function NewConnection() {
         {options.length === 0 ? (
           <EmptyState title="No providers are available" />
         ) : (
-          <ul className="grid gap-3 md:grid-cols-2">
+          <RevealGroup as="ul" className="grid gap-3 md:grid-cols-2" stagger={0.045} onMount>
             {options.map((option) => (
-              <li key={option.key}>
+              <RevealItem as="li" key={option.key} y={12}>
+                <SpotlightCard className="h-full rounded-2xl">
                 <Link
                   href={`/app/integrations/new?provider=${encodeURIComponent(option.key)}`}
-                  className="group flex h-full items-start gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-colors outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50"
+                  className="group lift press flex h-full items-start gap-3 rounded-2xl glass p-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                 >
+                  <ProviderMark provider={option.key} className="mt-0.5 size-10" />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium">{option.name}</span>
@@ -98,11 +102,15 @@ function NewConnection() {
                       {option.categories.length ? `; ${option.categories.map(categoryLabel).join(", ")}` : ""}
                     </p>
                   </div>
-                  <ChevronRightIcon className="mt-1 size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden />
+                  <ChevronRightIcon
+                    className="mt-1 size-4 text-muted-foreground transition-[transform,color] duration-300 ease-(--ease-out) group-hover:translate-x-1 group-hover:text-primary"
+                    aria-hidden
+                  />
                 </Link>
-              </li>
+                </SpotlightCard>
+              </RevealItem>
             ))}
-          </ul>
+          </RevealGroup>
         )}
       </>
     );
@@ -111,7 +119,11 @@ function NewConnection() {
   return (
     <>
       {back}
-      <PageHeader title={`Connect ${entry.name}`} description="Fill in the settings below. Credentials are stored encrypted and never displayed again." />
+      <PageHeader
+        title={`Connect ${entry.name}`}
+        description="Fill in the settings below. Credentials are stored encrypted and never displayed again."
+        meta={<ProviderMark provider={entry.key} className="size-8" />}
+      />
       <div className="max-w-4xl">
         <ConnectionForm key={entry.key} entry={entry} companies={companies.data?.companies ?? []} entities={entities.data?.entities ?? []} />
       </div>

@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
+import { MintMark, Seal, WaveBand } from "@/components/art/ornaments";
+import { Reveal } from "@/components/motion/reveal";
 import { AdvisorSample } from "@/components/marketing/advisor";
 import { ClosingCta } from "@/components/marketing/closing-cta";
 import { MODULE_GROUPS, MODULES, ORDERED_MODULES, type ModuleInfo } from "@/components/marketing/content";
-import { DecisionLabDetail, DecisionPrinciple } from "@/components/marketing/decision-lab";
+import { DecisionLabDetail, DecisionPlate } from "@/components/marketing/decision-lab";
 import { Container, PageMasthead, TextLink } from "@/components/marketing/primitives";
 import { ForecastingDetail, OutcomeTrackingSample } from "@/components/marketing/product-details";
 import { SectionIndex, type SectionIndexGroup } from "@/components/marketing/section-index";
+import { Caption } from "@/components/marketing/surface";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Product",
@@ -23,58 +27,83 @@ const INDEX_GROUPS: SectionIndexGroup[] = MODULE_GROUPS.map((group) => ({
 // Extra material for modules that need more than a list.
 const DETAILS: Partial<Record<string, ReactNode>> = {
   "integration-hub": (
-    <p className="mt-6">
+    <p className="mt-7">
       <TextLink href="/integrations">See connection methods and the provider catalogue</TextLink>
     </p>
   ),
   forecasting: <ForecastingDetail />,
   "decision-lab": (
-    <div className="mt-10">
-      <DecisionPrinciple className="max-w-[34ch] text-[1.5rem] leading-[1.22] sm:text-[1.875rem] lg:text-[2rem]" />
-      <DecisionLabDetail layout="stacked" className="mt-10" />
+    <div className="mt-12">
+      <DecisionPlate compact />
+      <DecisionLabDetail layout="stacked" className="mt-14" />
     </div>
   ),
   advisor: (
-    <div className="mt-10">
+    <div className="mt-12">
       <AdvisorSample />
     </div>
   ),
-  "reports-workflows": <OutcomeTrackingSample className="mt-10" />,
+  "reports-workflows": <OutcomeTrackingSample className="mt-12" />,
 };
 
-function ModuleSection({ module }: { module: ModuleInfo }) {
+// Notes that are verdicts get a seal; its words are printed beside it as well.
+const NOTE_SEALS: Partial<Record<string, string>> = {
+  "integration-hub": "connected after a test",
+};
+
+function ModuleNote({ module }: { module: ModuleInfo }) {
+  if (!module.note) return null;
+  const seal = NOTE_SEALS[module.id];
+  return (
+    <Reveal className="mt-9 max-w-[72ch]">
+      <div className="flex items-center gap-5 rounded-[0.75rem] bg-sheet py-4 pr-5 pl-5 shadow-[0_0_0_1px_var(--rule)] sm:gap-6 sm:pl-6">
+        {seal ? (
+          <div className="flex shrink-0 flex-col items-center gap-1 text-center">
+            <Seal text={seal} mark={module.name} className="size-20" />
+            <p className="max-w-[11ch] text-[0.6875rem] leading-snug text-muted-foreground first-letter:uppercase">{seal}</p>
+          </div>
+        ) : (
+          <span aria-hidden className="w-0.5 self-stretch rounded-full bg-ink/40" />
+        )}
+        <p className="text-[0.9375rem] leading-relaxed text-ink/85">{module.note}</p>
+      </div>
+    </Reveal>
+  );
+}
+
+function ModuleSection({ module, ruled }: { module: ModuleInfo; ruled: boolean }) {
   const titleId = `${module.id}-title`;
   return (
     <section
       id={module.id}
       aria-labelledby={titleId}
-      className="scroll-mt-24 border-t py-14 first-of-type:border-t-0 first-of-type:pt-0 sm:py-16"
+      className={cn("scroll-mt-24 py-16 sm:py-20", ruled && "border-t border-rule", !ruled && "first-of-type:pt-0")}
     >
-      <p className="text-sm text-muted-foreground">{module.group}</p>
-      <h2
-        id={titleId}
-        className="mt-1.5 font-display text-[1.75rem] leading-tight font-semibold tracking-[-0.02em] sm:text-[2.25rem]"
-      >
-        {module.name}
-      </h2>
-      <p className="mt-4 max-w-[64ch] text-pretty text-[1.0625rem] leading-relaxed text-muted-foreground">
-        {module.lead}
-      </p>
+      <Reveal>
+        <div className="flex items-center gap-4 sm:gap-5">
+          <MintMark name={module.name} strokeWidth={0.6} className="size-14 shrink-0 sm:size-16" />
+          <div>
+            <Caption>{module.group}</Caption>
+            <h2 id={titleId} className="mt-1 text-display text-[2.25rem] sm:text-[3rem]">
+              {module.name}
+            </h2>
+          </div>
+        </div>
+        <p className="mt-6 max-w-[64ch] text-pretty text-[1.0625rem] leading-relaxed text-muted-foreground">
+          {module.lead}
+        </p>
+      </Reveal>
       {module.capabilities.length > 0 ? (
-        <ul className="mt-8 grid max-w-4xl gap-x-10 gap-y-3 sm:grid-cols-2">
+        <ul className="mt-9 grid max-w-4xl gap-x-10 sm:grid-cols-2">
           {module.capabilities.map((capability) => (
-            <li key={capability} className="flex gap-3 text-[0.9375rem] leading-relaxed">
-              <span aria-hidden className="mt-[0.6em] size-1.5 shrink-0 rounded-full bg-primary" />
+            <li key={capability} className="flex gap-3 border-t border-rule py-3.5 text-[0.9375rem] leading-relaxed text-ink/85">
+              <span aria-hidden className="mt-[0.8em] h-px w-2.5 shrink-0 bg-ink/50" />
               {capability}
             </li>
           ))}
         </ul>
       ) : null}
-      {module.note ? (
-        <p className="mt-8 max-w-[72ch] border-l-2 border-primary/60 pl-4 text-[0.9375rem] leading-relaxed">
-          {module.note}
-        </p>
-      ) : null}
+      <ModuleNote module={module} />
       {DETAILS[module.id] ?? null}
     </section>
   );
@@ -84,39 +113,49 @@ export default function ProductPage() {
   return (
     <>
       <PageMasthead
+        seed="product"
         title="Everything from the first import to the final report"
         lead="Eleven modules share one validated data model, so a figure on the dashboard, in a forecast and in the advisor's answer is the same figure."
       />
 
-      <Container className="py-14 sm:py-20 lg:grid lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:gap-16 xl:gap-20">
-        <aside className="hidden lg:block">
-          <div className="sticky top-28">
-            <SectionIndex groups={INDEX_GROUPS} label="Modules" />
+      {/* No overflow clipping here: it would break the sticky index. */}
+      <div className="relative">
+        <Container className="py-16 sm:py-24 lg:grid lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-14 xl:gap-20">
+          <aside className="hidden lg:block">
+            <div className="glass-strong sticky top-28 rounded-[0.75rem] p-4">
+              <SectionIndex groups={INDEX_GROUPS} label="Modules" />
+            </div>
+          </aside>
+
+          <div className="min-w-0">
+            <nav aria-label="Modules" className="mb-14 lg:hidden">
+              <Caption className="text-ink">Jump to a module</Caption>
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {ORDERED_MODULES.map((module) => (
+                  <li key={module.id}>
+                    <a
+                      href={`#${module.id}`}
+                      className="press inline-flex h-9 items-center rounded-full bg-sheet px-3.5 text-sm font-medium text-ink shadow-[0_0_0_1px_var(--rule)] outline-none hover:shadow-[0_0_0_1px_var(--rule-strong)] focus-visible:ring-3 focus-visible:ring-prussian/50"
+                    >
+                      {module.name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+
+            {ORDERED_MODULES.map((module, i) => {
+              const groupStart = i > 0 && module.group !== ORDERED_MODULES[i - 1].group;
+              return (
+                <Fragment key={module.id}>
+                  {groupStart ? <WaveBand tone="ink" className="h-5" waves={14} copies={5} /> : null}
+                  <ModuleSection module={module} ruled={i > 0 && !groupStart} />
+                </Fragment>
+              );
+            })}
           </div>
-        </aside>
-
-        <div className="min-w-0">
-          <nav aria-label="Modules" className="mb-12 lg:hidden">
-            <p className="text-sm font-medium">Jump to a module</p>
-            <ul className="mt-3 flex flex-wrap gap-2">
-              {ORDERED_MODULES.map((module) => (
-                <li key={module.id}>
-                  <a
-                    href={`#${module.id}`}
-                    className="inline-flex h-9 items-center rounded-full border bg-background px-3.5 text-sm transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
-                  >
-                    {module.name}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          {ORDERED_MODULES.map((module) => (
-            <ModuleSection key={module.id} module={module} />
-          ))}
-        </div>
-      </Container>
+        </Container>
+      </div>
 
       <ClosingCta />
     </>

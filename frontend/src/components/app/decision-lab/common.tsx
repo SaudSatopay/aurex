@@ -13,11 +13,13 @@ import {
   FlaskRoundIcon,
   TriangleAlertIcon,
 } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 
 import { StatusBadge, type Tone } from "@/components/app/badges";
 import { CopyButton } from "@/components/app/form";
+import { Serial } from "@/components/app/print";
 import { ErrorState } from "@/components/app/states";
 import {
   errorText,
@@ -54,7 +56,7 @@ export function toastError(error: unknown, title?: string) {
 /** Shape + colour per source, as on the public site: never colour alone. */
 export function SourceMarker({ kind, className }: { kind: SourceKind; className?: string }) {
   const shape = {
-    data: "rounded-full bg-brand-500 dark:bg-sky-accent",
+    data: "rounded-full bg-prussian dark:bg-gold",
     user: "rotate-45 scale-90 rounded-[1px] bg-warning",
     model: "rounded-[1px] border-[1.5px] border-current",
     default: "rounded-full border-[1.5px] border-current opacity-70",
@@ -139,8 +141,9 @@ export function RangeStrip({
   emphasis?: boolean;
   showLabels?: boolean;
 }) {
+  const still = useReducedMotion();
   if (!isNum(low) || !isNum(high)) {
-    return <p className={cn("text-xs", surface === "dark" ? "text-navy-300" : "text-muted-foreground")}>Range not available</p>;
+    return <p className={cn("text-xs", surface === "dark" ? "text-sidebar-foreground/60" : "text-muted-foreground")}>Range not available</p>;
   }
   const [min, max] = domain ?? rangeDomain([low, mid, high]);
   const pos = (v: number) => Math.max(0, Math.min(100, ((v - min) / (max - min)) * 100));
@@ -148,56 +151,75 @@ export function RangeStrip({
   const right = pos(Math.max(low, high));
   const width = Math.max(right - left, 0.8);
   const zero = min < 0 && max > 0 ? pos(0) : null;
-  const median = isNum(mid) ? pos(mid) : null;
   const deterministic = Math.abs(high - low) <= Math.max(1, Math.abs(mid ?? high) * 1e-6);
+  // With no spread, the single value is drawn as the median line and the band is left out.
+  const median = isNum(mid) ? pos(mid) : deterministic ? left : null;
   const description = deterministic
     ? `${label}: ${format(mid ?? low)} in every simulation run`
     : `${label}: 10th percentile ${format(low)}, median ${isNum(mid) ? format(mid) : "not available"}, 90th percentile ${format(high)}`;
   const dark = surface === "dark";
+  // Engraved tint: fine diagonal hatching in ink (gold on a plate) between two hairlines.
+  const hatch = dark
+    ? "repeating-linear-gradient(115deg, color-mix(in oklch, var(--gold-light) 55%, transparent) 0 1px, transparent 1px 4px)"
+    : `repeating-linear-gradient(115deg, color-mix(in oklch, var(--prussian) ${emphasis ? 62 : 42}%, transparent) 0 1px, transparent 1px 4px)`;
   return (
     <div className="min-w-0">
       <div className={cn("relative", compact ? "h-4" : "h-6")} role="img" aria-label={description}>
-        <span className={cn("absolute inset-x-0 top-1/2 h-px -translate-y-1/2", dark ? "bg-white/15" : "bg-border")} />
+        <span className={cn("absolute inset-x-0 top-1/2 h-px -translate-y-1/2", dark ? "bg-sidebar-foreground/15" : "bg-rule")} />
         {zero !== null ? (
           <span
-            className={cn("absolute top-0 bottom-0 w-px", dark ? "bg-white/45" : "bg-foreground/35")}
+            className={cn("absolute top-0 bottom-0 w-px", dark ? "bg-sidebar-foreground/45" : "bg-ink/35")}
             style={{ left: `${zero}%` }}
             aria-hidden
           />
         ) : null}
         <span
-          className={cn(
-            "absolute top-1/2 -translate-y-1/2 rounded-full",
-            compact ? "h-2" : "h-2.5",
-            dark ? "bg-sky-accent/45" : emphasis ? "bg-primary/35" : "bg-primary/22",
-          )}
+          className={cn("absolute top-1/2 -translate-y-1/2", compact ? "h-2" : "h-2.5", deterministic && "hidden")}
           style={{ left: `${left}%`, width: `${width}%` }}
           aria-hidden
-        />
+        >
+          <motion.span
+            className={cn(
+              "block size-full origin-left border-y",
+              dark ? "border-gold-light/70 bg-gold/10" : emphasis ? "border-prussian/70 bg-prussian/10" : "border-prussian/45 bg-prussian/[0.06]",
+            )}
+            style={{ backgroundImage: hatch }}
+            data-reveal=""
+            initial={{ scaleX: 0, opacity: 0 }}
+            whileInView={{ scaleX: 1, opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ scaleX: { type: "spring", bounce: 0, visualDuration: 0.8 }, opacity: { duration: 0.4 } }}
+          />
+        </span>
         {median !== null ? (
-          <span
+          <motion.span
             className={cn(
               "absolute top-1/2 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-full",
               compact ? "h-3" : "h-4",
-              dark ? "bg-white" : "bg-primary",
+              dark ? "bg-gold" : "bg-gold-deep",
             )}
             style={{ left: `${median}%` }}
+            data-reveal=""
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.4, delay: still ? 0 : 0.35 }}
             aria-hidden
           />
         ) : null}
       </div>
       {showLabels ? (
         deterministic ? (
-          <p className={cn("mt-1 text-xs", dark ? "text-navy-300" : "text-muted-foreground")}>
+          <p className={cn("mt-1 text-xs", dark ? "text-sidebar-foreground/60" : "text-muted-foreground")}>
             Same in every run: no uncertain parameter affects it
           </p>
         ) : (
-          <div className={cn("mt-1 flex justify-between gap-2 text-xs tabular", dark ? "text-navy-200" : "text-muted-foreground")}>
+          <div className={cn("mt-1 flex justify-between gap-2 text-xs tabular", dark ? "text-sidebar-foreground/75" : "text-muted-foreground")}>
             <span>
               <span className="sr-only">10th percentile </span>P10 {format(low)}
             </span>
             {isNum(mid) ? (
-              <span className={dark ? "text-white" : "text-foreground"}>
+              <span className={dark ? "font-medium text-gold-light" : "font-medium text-gold-deep"}>
                 <span className="sr-only">Median </span>P50 {format(mid)}
               </span>
             ) : null}
@@ -223,11 +245,18 @@ export function SyntheticBadge({ className, label = "Synthetic data" }: { classN
   );
 }
 
-const RELIABILITY: Record<string, { tone: Tone; label: string; icon: typeof CircleCheckIcon }> = {
-  reliable: { tone: "good", label: "Reliable", icon: CircleCheckIcon },
-  use_with_caution: { tone: "warning", label: "Use with caution", icon: CircleAlertIcon },
-  unreliable: { tone: "danger", label: "Unreliable", icon: TriangleAlertIcon },
+const RELIABILITY: Record<string, { tone: Tone; label: string; icon: typeof CircleCheckIcon; seal: "verdigris" | "gold" | "oxblood" }> = {
+  reliable: { tone: "good", label: "Reliable", icon: CircleCheckIcon, seal: "verdigris" },
+  use_with_caution: { tone: "warning", label: "Use with caution", icon: CircleAlertIcon, seal: "gold" },
+  unreliable: { tone: "danger", label: "Unreliable", icon: TriangleAlertIcon, seal: "oxblood" },
 };
+
+/** The verdict's words and the ink of its seal; null for a verdict the API did not give. */
+export function reliabilityVerdict(reliability: string | null | undefined): { label: string; seal: "verdigris" | "gold" | "oxblood" } | null {
+  if (!reliability) return null;
+  const info = RELIABILITY[reliability];
+  return info ? { label: info.label, seal: info.seal } : null;
+}
 
 export function ReliabilityBadge({ reliability, className }: { reliability: string | null | undefined; className?: string }) {
   if (!reliability) return <StatusBadge icon={CircleHelpIcon}>Not rated</StatusBadge>;
@@ -281,14 +310,12 @@ export function ExternalLink({ href, children, className }: { href: string | nul
   );
 }
 
-/** A long hash or id: shortened on screen, full value in the title and on copy. */
+/** A long hash or id, printed as a serial: shortened on screen, full value in the title and on copy. */
 export function HashValue({ value, chars = 12, copy = true }: { value: string | null | undefined; chars?: number; copy?: boolean }) {
   if (!value) return <span className="text-muted-foreground">Not available</span>;
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
-      <code className={cn("rounded bg-muted px-1.5 py-0.5 font-mono text-xs", value.length > chars ? "whitespace-nowrap" : "break-all")} title={value}>
-        {value.length > chars ? `${value.slice(0, chars)}…` : value}
-      </code>
+      <Serial value={value} chars={chars} />
       {copy ? <CopyButton value={value} label="Copy" /> : null}
     </span>
   );
@@ -311,7 +338,7 @@ export function Figure({
   return (
     <div className={cn("min-w-0", className)}>
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={cn("mt-0.5 text-[0.9375rem] font-semibold tracking-[-0.005em] text-foreground", valueClassName)}>{value}</p>
+      <p className={cn("numeral mt-0.5 text-[1.125rem] leading-snug font-semibold text-foreground", valueClassName)}>{value}</p>
       {hint ? <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{hint}</p> : null}
     </div>
   );

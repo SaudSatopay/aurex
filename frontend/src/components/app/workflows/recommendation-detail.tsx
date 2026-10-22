@@ -22,9 +22,12 @@ import { StatusBadge } from "@/components/app/badges";
 import { BarList } from "@/components/app/charts/bar-list";
 import { CONTEXT_COLOR } from "@/components/app/charts/palette";
 import { DetailList, NoteList, PageHeader, Panel } from "@/components/app/page";
+import { Serial, Signatory } from "@/components/app/print";
 import { useSession } from "@/components/app/session-provider";
 import { EmptyState, Notice, SkeletonBlock } from "@/components/app/states";
 import { QueryError, RangeStrip, rangeDomain, toastError } from "@/components/app/decision-lab/common";
+import { NumberTicker } from "@/components/kit/number-ticker";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 import { useFilterOptions } from "@/hooks/use-filter-options";
 import { useInvalidateOrg, useOrgMutation, useOrgQuery } from "@/hooks/use-org-query";
@@ -33,7 +36,7 @@ import { formatDate, formatDateTime, formatNumber, formatPercent, humanize } fro
 import { MONEY_METRICS, SOURCE_LABELS, type MeasureResult, type Outcome, type Recommendation, type RecommendationDetail } from "@/lib/app/workflows-types";
 
 import { CreateTaskDialog, ImplementedDialog, NoteDialog } from "./dialogs";
-import { ConfidenceBadge, formatImpact, impactMetricLabel, Pipeline, PriorityBadge, RecStatusBadge, useMembers } from "./shared";
+import { ApprovedSeal, ConfidenceBadge, formatImpact, impactMetricLabel, Pipeline, PriorityBadge, RecStatusBadge, useMembers } from "./shared";
 import { TaskStatusSelect, useCreateTask } from "./tasks";
 
 const HISTORY_LABELS: Record<string, string> = {
@@ -55,7 +58,7 @@ function EvidenceBlock({ item, currency }: { item: Record<string, unknown>; curr
   const scalars = Object.entries(item).filter(([k, v]) => !["type", "items", "warnings", "summary", "method"].includes(k) && v !== null && typeof v !== "object");
   const columns = rows.length ? Object.keys(rows[0]) : [];
   return (
-    <div className="space-y-2 rounded-lg bg-muted/45 px-3.5 py-3">
+    <div className="space-y-2 rounded-xl border border-(--glass-border) bg-white/40 px-3.5 py-3 shadow-[inset_0_1px_0_var(--glass-edge)] dark:bg-white/[0.04]">
       <p className="text-xs font-semibold text-muted-foreground">{humanize(type)}</p>
       {typeof item.summary === "string" ? <p className="text-[0.8125rem]">{item.summary}</p> : null}
       {scalars.length ? (
@@ -69,9 +72,9 @@ function EvidenceBlock({ item, currency }: { item: Record<string, unknown>; curr
         </dl>
       ) : null}
       {rows.length ? (
-        <div className="relative w-full overflow-x-auto rounded-md bg-card ring-1 ring-foreground/8" tabIndex={0} role="region" aria-label={`${humanize(type)} items`}>
-          <table className="w-full border-collapse text-xs">
-            <thead className="bg-muted/60">
+        <div className="relative w-full overflow-x-auto rounded-lg bg-white/50 ring-1 ring-(--glass-border) dark:bg-white/[0.03]" tabIndex={0} role="region" aria-label={`${humanize(type)} items`}>
+          <table className="w-full border-collapse text-xs tabular-nums">
+            <thead className="bg-white/55 dark:bg-white/[0.04]">
               <tr>
                 {columns.map((c) => (
                   <th key={c} scope="col" className="px-2.5 py-1.5 text-left font-medium whitespace-nowrap text-muted-foreground">
@@ -82,7 +85,7 @@ function EvidenceBlock({ item, currency }: { item: Record<string, unknown>; curr
             </thead>
             <tbody>
               {rows.map((row, i) => (
-                <tr key={i} className="border-t">
+                <tr key={i} className="border-t border-(--glass-border) transition-colors duration-200 hover:bg-primary/[0.035] dark:hover:bg-white/[0.035]">
                   {columns.map((c) => (
                     <td key={c} className="px-2.5 py-1.5 whitespace-nowrap tabular">
                       {formatEvidenceValue(c.replace(/_/g, " "), row[c], currency)}
@@ -139,14 +142,19 @@ function ImpactPanel({ rec, currency }: { rec: Recommendation; currency: string 
       <div className="space-y-4">
         {isNum(impact.predicted_delta) ? (
           <div>
-            <p className="text-3xl leading-none font-semibold tracking-[-0.02em]">{formatImpact(metric, impact.predicted_delta, currency)}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="numeral text-[2.75rem] leading-none font-semibold">
+              <NumberTicker
+                value={impact.predicted_delta}
+                format={(v) => formatImpact(metric, Number.isInteger(impact.predicted_delta) ? Math.round(v) : v, currency)}
+              />
+            </p>
+            <p className="mt-1.5 text-xs text-muted-foreground">
               Predicted change{impact.horizon_months ? ` over ${impact.horizon_months} months` : ""}
             </p>
           </div>
         ) : isNum(impact.baseline_value) && isNum(impact.predicted_value) ? (
           <div>
-            <p className="text-2xl leading-tight font-semibold">
+            <p className="numeral text-[1.75rem] leading-tight font-semibold">
               {formatImpact(metric, impact.baseline_value, currency, false)} → {formatImpact(metric, impact.predicted_value, currency, false)}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">From the value when recommended to the predicted value</p>
@@ -222,14 +230,19 @@ function OutcomePanel({
           ]}
           color={CONTEXT_COLOR}
         />
-        <DetailList
-          items={[
-            { label: "Realised effect (actual − baseline)", value: fmt(outcome.realized_effect) },
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-4 border-t border-(--glass-border) pt-4">
+          {[
             { label: "Predicted effect", value: fmt(outcome.predicted_effect) },
+            { label: "Realised effect (actual − baseline)", value: fmt(outcome.realized_effect) },
             { label: "Actual against prediction", value: fmt(outcome.variance_vs_predicted) },
             { label: "Share of the predicted effect realised", value: isNum(outcome.accuracy) ? formatPercent(outcome.accuracy, { decimals: 0 }) : "Not defined" },
-          ]}
-        />
+          ].map((item) => (
+            <div key={item.label} className="min-w-0">
+              <dt className="text-xs text-muted-foreground">{item.label}</dt>
+              <dd className="numeral mt-1 text-[1.5rem] leading-none font-semibold">{item.value}</dd>
+            </div>
+          ))}
+        </dl>
         <NoteList notes={[outcome.method, outcome.notes].filter((n): n is string => Boolean(n))} />
         {lastMeasure?.status === "partial" ? <Notice tone="warning">Partial window: data ends before the measurement window closes, so this is an interim reading.</Notice> : null}
       </div>
@@ -256,14 +269,14 @@ function OutcomePanel({
 type ActionKey = "submit" | "approve" | "reject" | "dismiss" | null;
 
 export function RecommendationDetailView({ id }: { id: string }) {
-  const { has } = useSession();
+  const { has, user, membership } = useSession();
   const invalidate = useInvalidateOrg();
   const options = useFilterOptions();
   const currency = options.data?.companies.find((c) => c.id === options.data?.company_id)?.currency ?? "INR";
   const canWrite = has("recommendations:write");
   const canApprovePerm = has("recommendations:approve");
   const canManageTasks = has("tasks:manage");
-  const { canList, members, nameOf } = useMembers();
+  const { canList, members, nameOf, roleOf, roleOfName } = useMembers();
   const [action, setAction] = useState<ActionKey>(null);
   const [implementedOpen, setImplementedOpen] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
@@ -377,10 +390,22 @@ export function RecommendationDetailView({ id }: { id: string }) {
   } as const;
   const current = action ? dialog[action] : null;
 
+  // Signatories: who asked (the creator, or the rule engine) and who decided, with roles where the data has them.
+  const ownRec = Boolean(rec.created_by) && rec.created_by === user.id;
+  const requester = {
+    name: rec.created_by ? (ownRec ? user.full_name : nameOf(rec.created_by)) : (SOURCE_LABELS[rec.source] ?? humanize(rec.source)),
+    details: [
+      ownRec ? `You${membership?.role_label ? `, ${membership.role_label}` : ""}` : roleOf(rec.created_by),
+      rec.created_at ? `Created ${formatDateTime(rec.created_at)}` : null,
+    ],
+  };
+  const decided = rec.approvals.find((a) => a.status === "approved" || a.status === "rejected") ?? null;
+  const awaiting = rec.approvals.find((a) => a.status === "pending") ?? null;
+
   return (
     <>
-      <Link href="/app/workflows" className="mb-3 inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50">
-        <ArrowLeftIcon className="size-4" aria-hidden />
+      <Link href="/app/workflows" className="group mb-3 inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors duration-200 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50">
+        <ArrowLeftIcon className="size-4 transition-transform duration-300 ease-(--ease-out) group-hover:-translate-x-0.5" aria-hidden />
         Workflows
       </Link>
       <PageHeader
@@ -397,6 +422,7 @@ export function RecommendationDetailView({ id }: { id: string }) {
             <span>
               Created {formatDateTime(rec.created_at)} by {nameOf(rec.created_by)}
             </span>
+            <Serial value={rec.id} chars={8} label="Reference" />
           </>
         }
       />
@@ -408,8 +434,11 @@ export function RecommendationDetailView({ id }: { id: string }) {
         ) : null}
         {rec.status === "pending_approval" && !canApprovePerm ? <Notice>Waiting for a member with approval rights to decide.</Notice> : null}
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <ImpactPanel rec={rec} currency={currency} />
+        <RevealGroup stagger={0.05} className="grid gap-6 lg:grid-cols-2">
+          <RevealItem y={12} className="min-w-0 [&>section]:h-full">
+            <ImpactPanel rec={rec} currency={currency} />
+          </RevealItem>
+          <RevealItem y={12} className="min-w-0 [&>section]:h-full">
           <OutcomePanel
             rec={rec}
             currency={currency}
@@ -428,7 +457,8 @@ export function RecommendationDetailView({ id }: { id: string }) {
               })
             }
           />
-        </div>
+          </RevealItem>
+        </RevealGroup>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <Panel title="Evidence" description="What the recommendation is based on">
@@ -446,7 +476,7 @@ export function RecommendationDetailView({ id }: { id: string }) {
             {rec.assumptions.length ? <NoteList notes={rec.assumptions} className="text-[0.8125rem] text-foreground/85" /> : <p className="text-sm text-muted-foreground">No assumptions recorded.</p>}
             {rec.measurement_start ? (
               <DetailList
-                className="mt-4 border-t pt-4"
+                className="mt-4 border-t border-(--glass-border) pt-4"
                 items={[
                   { label: "Implemented", value: formatDate(rec.implemented_at) },
                   { label: "Measurement window", value: `${formatDate(rec.measurement_start)} to ${formatDate(rec.measurement_end)}` },
@@ -458,10 +488,33 @@ export function RecommendationDetailView({ id }: { id: string }) {
 
         <div className="grid gap-6 lg:grid-cols-2">
           <Panel title="Approvals" description="Who was asked, and who decided">
+            <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+              <Signatory caption="Requested by" name={requester.name} details={requester.details} />
+              {decided ? (
+                <Signatory
+                  caption={decided.status === "approved" ? "Approved by" : "Rejected by"}
+                  name={decided.approver ?? "Approver"}
+                  details={[roleOfName(decided.approver), decided.decided_at ? `Decided ${formatDateTime(decided.decided_at)}` : null]}
+                  mark={decided.status === "approved" ? <ApprovedSeal mark={rec.id} className="size-[4.5rem]" /> : null}
+                />
+              ) : (
+                <Signatory
+                  caption={awaiting ? "Awaiting decision" : "Decision"}
+                  name={null}
+                  details={[
+                    awaiting
+                      ? `Requested ${formatDateTime(awaiting.requested_at)}`
+                      : rec.approvals.length
+                        ? "No decision recorded"
+                        : "Not submitted for approval yet",
+                  ]}
+                />
+              )}
+            </div>
             {rec.approvals.length ? (
-              <ul className="divide-y">
+              <ul className="mt-6 divide-y divide-(--glass-border) border-t border-(--glass-border)">
                 {rec.approvals.map((a) => (
-                  <li key={a.id} className="flex flex-wrap items-start justify-between gap-2 py-2.5 first:pt-0 last:pb-0">
+                  <li key={a.id} className="flex flex-wrap items-start justify-between gap-2 py-2.5 last:pb-0">
                     <div>
                       <p className="text-[0.8125rem] font-medium">{a.approver ?? "Approver"}</p>
                       <p className="text-xs text-muted-foreground">
@@ -476,16 +529,14 @@ export function RecommendationDetailView({ id }: { id: string }) {
                   </li>
                 ))}
               </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground">Not submitted for approval yet.</p>
-            )}
+            ) : null}
           </Panel>
           <Panel title="Timeline" description="Every step, from the audit trail">
             {rec.history.length ? (
-              <ol className="relative space-y-3 border-l pl-4">
+              <ol className="relative space-y-3 border-l border-(--glass-border) pl-4">
                 {rec.history.map((h, i) => (
                   <li key={i} className="relative">
-                    <span aria-hidden className="absolute top-1.5 -left-[1.3rem] size-2 rounded-full bg-primary ring-4 ring-card" />
+                    <span aria-hidden className="absolute top-1.5 -left-[1.3rem] size-2 rounded-full bg-primary shadow-[0_0_0_4px_color-mix(in_oklch,var(--primary)_14%,transparent)]" />
                     <p className="text-[0.8125rem] font-medium">{HISTORY_LABELS[h.action] ?? humanize(h.action.replace("recommendation.", ""))}</p>
                     <p className="text-xs text-muted-foreground">
                       {formatDateTime(h.at)}
@@ -503,7 +554,7 @@ export function RecommendationDetailView({ id }: { id: string }) {
 
         <Panel title="Tasks" description="Work linked to this recommendation">
           {rec.tasks.length ? (
-            <ul className="divide-y">
+            <ul className="divide-y divide-(--glass-border)">
               {rec.tasks.map((t) => (
                 <li key={t.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 first:pt-0 last:pb-0">
                   <div className="min-w-0">

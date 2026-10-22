@@ -15,6 +15,7 @@ import { JsonPreview } from "@/components/app/json-preview";
 import { DetailList, PageHeader, Panel } from "@/components/app/page";
 import { Pagination } from "@/components/app/pagination";
 import { EmptyState, ErrorState, Notice, TableSkeleton } from "@/components/app/states";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -128,7 +129,8 @@ function JobView() {
           </Notice>
         ) : null}
 
-        <div className="grid gap-px overflow-hidden rounded-xl bg-border ring-1 ring-foreground/10 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="overflow-hidden rounded-2xl glass">
+          <div className="-mt-px -ml-px grid sm:grid-cols-3 lg:grid-cols-5">
           {(
             [
               ["Received", data.records.received],
@@ -138,20 +140,29 @@ function JobView() {
               ["Rejected", data.records.rejected],
             ] as const
           ).map(([label, value]) => (
-            <div key={label} className="bg-card px-4 py-4">
+            <div
+              key={label}
+              className="border-t border-l border-(--glass-border) px-4 py-4 transition-colors duration-300 ease-(--ease-out) hover:bg-white/50 dark:hover:bg-white/[0.04]"
+            >
               <p className="text-[0.8125rem] text-muted-foreground">{label}</p>
-              <p className={`mt-1 text-2xl leading-none font-semibold ${label === "Rejected" && value > 0 ? "text-destructive" : ""}`}>
+              <p
+                className={`mt-1 text-2xl leading-none font-semibold tracking-[-0.03em] tabular-nums ${label === "Rejected" && value > 0 ? "text-destructive" : ""}`}
+              >
                 {active ? "…" : formatNumber(value)}
               </p>
             </div>
           ))}
+          </div>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-3">
-          <Panel className="xl:col-span-2" title="Records by type" description="What happened to the rows of each record type">
+        <RevealGroup className="grid gap-6 xl:grid-cols-3" stagger={0.05} onMount>
+          <RevealItem className="flex min-w-0 xl:col-span-2" y={12}>
+          <Panel className="w-full" title="Records by type" description="What happened to the rows of each record type">
             {active && !stats.length ? <p className="text-sm text-muted-foreground">Counting rows…</p> : <EntityStatsTable stats={stats} />}
           </Panel>
-          <Panel title="Job details">
+          </RevealItem>
+          <RevealItem className="flex min-w-0" y={12}>
+          <Panel className="w-full" title="Job details">
             <DetailList
               className="sm:grid-cols-1"
               items={[
@@ -177,7 +188,8 @@ function JobView() {
               ]}
             />
           </Panel>
-        </div>
+          </RevealItem>
+        </RevealGroup>
 
         <ErrorLog jobId={data.id} total={data.logged_errors} codes={Array.from(new Set(stats.flatMap((s) => Object.keys(s.error_counts ?? {}))))} />
       </div>

@@ -13,6 +13,7 @@ import { GrossProfitPanel, SalesTrendPanel } from "@/components/app/sections/sal
 import { CategoryMixPanel, StoresPanel } from "@/components/app/sections/stores";
 import { useSession } from "@/components/app/session-provider";
 import { ChartSkeleton, EmptyState, ErrorState, SkeletonBlock } from "@/components/app/states";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { useFilters } from "@/hooks/use-filters";
 import { useOrgQuery } from "@/hooks/use-org-query";
 import { formatDate } from "@/lib/app/format";
@@ -32,20 +33,22 @@ export default function DashboardPage() {
 function DashboardSkeleton() {
   return (
     <div className="space-y-6" aria-busy="true" aria-label="Loading the dashboard">
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-border ring-1 ring-foreground/10 lg:grid-cols-4">
-        {Array.from({ length: 8 }, (_, i) => (
-          <div key={i} className="space-y-3 bg-card p-5">
-            <SkeletonBlock className="h-3.5 w-24" />
-            <SkeletonBlock className="h-7 w-28" />
-            <SkeletonBlock className="h-3 w-36" />
-          </div>
-        ))}
+      <div className="overflow-hidden rounded-2xl glass">
+        <div className="-mt-px -ml-px grid grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 8 }, (_, i) => (
+            <div key={i} className="space-y-3 border-t border-l border-(--glass-border) p-5">
+              <SkeletonBlock className="h-3.5 w-24" />
+              <SkeletonBlock className="h-7 w-28" />
+              <SkeletonBlock className="h-3 w-36" />
+            </div>
+          ))}
+        </div>
       </div>
       <div className="grid gap-6 xl:grid-cols-3">
-        <div className="rounded-xl bg-card p-5 ring-1 ring-foreground/10 xl:col-span-2">
+        <div className="rounded-2xl glass p-5 xl:col-span-2">
           <ChartSkeleton />
         </div>
-        <SkeletonBlock className="h-80 rounded-xl" />
+        <SkeletonBlock className="h-80 rounded-2xl" />
       </div>
     </div>
   );
@@ -128,32 +131,54 @@ function Dashboard() {
           <KpiLedger kpis={ledger} currency={currency} comparisonLabel={comparisonLabel} />
         </section>
 
-        <div className="grid gap-6 xl:grid-cols-3">
-          <SalesTrendPanel
-            className="xl:col-span-2"
-            series={data.series}
-            granularity={data.period.granularity}
-            currency={currency}
-            dimmed={dimmed}
-            comparisonLabel={data.period.comparison_label ?? "Comparison period"}
-          />
-          <HealthPanel health={data.health} dimmed={dimmed} />
-        </div>
+        <RevealGroup className="grid gap-6 xl:grid-cols-3" stagger={0.05}>
+          <RevealItem className="flex min-w-0 xl:col-span-2" y={12}>
+            <SalesTrendPanel
+              className="w-full"
+              series={data.series}
+              granularity={data.period.granularity}
+              currency={currency}
+              dimmed={dimmed}
+              comparisonLabel={data.period.comparison_label ?? "Comparison period"}
+            />
+          </RevealItem>
+          <RevealItem className="flex min-w-0 [&>*]:w-full" y={12}>
+            <HealthPanel health={data.health} dimmed={dimmed} />
+          </RevealItem>
+        </RevealGroup>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <RevealGroup className="grid gap-6 lg:grid-cols-2" stagger={0.05}>
           {finance ? (
-            <GrossProfitPanel series={data.series} granularity={data.period.granularity} currency={currency} dimmed={dimmed} />
+            <RevealItem className="flex min-w-0 [&>*]:w-full" y={12}>
+              <GrossProfitPanel series={data.series} granularity={data.period.granularity} currency={currency} dimmed={dimmed} />
+            </RevealItem>
           ) : null}
-          <CategoryMixPanel categories={data.categories} currency={currency} dimmed={dimmed} className={finance ? undefined : "lg:col-span-2"} />
-        </div>
+          <RevealItem className={finance ? "flex min-w-0" : "flex min-w-0 lg:col-span-2"} y={12}>
+            <CategoryMixPanel categories={data.categories} currency={currency} dimmed={dimmed} className="w-full" />
+          </RevealItem>
+        </RevealGroup>
 
-        <StoresPanel stores={data.stores} currency={currency} finance={finance} dimmed={dimmed} />
+        <RevealGroup>
+          <RevealItem y={12}>
+            <StoresPanel stores={data.stores} currency={currency} finance={finance} dimmed={dimmed} />
+          </RevealItem>
+        </RevealGroup>
 
-        <div className="grid gap-6 lg:grid-cols-2 2xl:grid-cols-3">
-          {data.expenses ? <ExpenseBreakdownPanel expenses={data.expenses} currency={currency} dimmed={dimmed} /> : null}
-          <InventorySnapshotPanel inventory={data.inventory} stockouts={data.stockouts_recent} currency={currency} dimmed={dimmed} />
-          {data.cash ? <CashPanel cash={data.cash} currency={currency} dimmed={dimmed} /> : null}
-        </div>
+        <RevealGroup className="grid gap-6 lg:grid-cols-2 2xl:grid-cols-3" stagger={0.05}>
+          {data.expenses ? (
+            <RevealItem className="flex min-w-0 [&>*]:w-full" y={12}>
+              <ExpenseBreakdownPanel expenses={data.expenses} currency={currency} dimmed={dimmed} />
+            </RevealItem>
+          ) : null}
+          <RevealItem className="flex min-w-0 [&>*]:w-full" y={12}>
+            <InventorySnapshotPanel inventory={data.inventory} stockouts={data.stockouts_recent} currency={currency} dimmed={dimmed} />
+          </RevealItem>
+          {data.cash ? (
+            <RevealItem className="flex min-w-0 [&>*]:w-full" y={12}>
+              <CashPanel cash={data.cash} currency={currency} dimmed={dimmed} />
+            </RevealItem>
+          ) : null}
+        </RevealGroup>
 
         {data.notes.length || data.synthetic_notice ? (
           <Panel title="Notes on these figures" description="How the numbers above were produced for this selection">

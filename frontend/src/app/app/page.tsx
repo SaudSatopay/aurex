@@ -39,7 +39,7 @@ function WorkspaceRedirect() {
       <div className="space-y-4" aria-busy="true">
         <SkeletonBlock className="h-8 w-64" />
         <SkeletonBlock className="h-4 w-96 max-w-full" />
-        <SkeletonBlock className="h-40 w-full" />
+        <SkeletonBlock className="h-40 w-full rounded-2xl" />
       </div>
     );
   }
@@ -47,6 +47,7 @@ function WorkspaceRedirect() {
   return (
     <div className="mx-auto max-w-xl py-12">
       <EmptyState
+        className="rounded-3xl glass"
         icon={Building2Icon}
         title="You are not a member of an organization yet"
         description="Ask an organization owner to send you an invitation link. Once you accept it, your workspace appears here."

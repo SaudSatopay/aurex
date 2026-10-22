@@ -85,17 +85,17 @@ function PasswordPolicy({ value }: { value: string }) {
 export function SignUpFallback() {
   return (
     <div>
-      <h1 className="font-display text-[2rem] leading-tight font-semibold tracking-[-0.025em]">
+      <h1 className="text-display text-[2.125rem] leading-[1] font-semibold sm:text-[2.5rem]">
         Create your AUREX account
       </h1>
-      <div aria-hidden className="mt-8 space-y-5 rounded-2xl bg-card p-5 ring-1 ring-foreground/10 sm:p-7">
+      <div aria-hidden className="mt-8 space-y-5">
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="space-y-2">
             <Skeleton className="h-4 w-28" />
-            <Skeleton className="h-11 w-full" />
+            <Skeleton className="h-11 w-full rounded-xl" />
           </div>
         ))}
-        <Skeleton className="h-11 w-full" />
+        <Skeleton className="h-12 w-full rounded-full" />
       </div>
     </div>
   );
@@ -226,10 +226,10 @@ export function SignUpForm() {
 
   return (
     <div>
-      <h1 className="font-display text-[2rem] leading-tight font-semibold tracking-[-0.025em]">
+      <h1 className="text-display text-[2.125rem] leading-[1] font-semibold sm:text-[2.5rem]">
         {invite ? `Join ${invite.organization_name}` : "Create your AUREX account"}
       </h1>
-      <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
+      <p className="mt-4 text-[0.9375rem] leading-relaxed text-muted-foreground">
         {invite
           ? "Choose your name and a password to accept the invitation."
           : "Set up your organization now and connect data when you're ready. You'll be its owner and can invite colleagues afterwards."}
@@ -243,7 +243,7 @@ export function SignUpForm() {
       ) : null}
 
       {invite ? (
-        <div className="mt-6 rounded-xl border bg-card px-4 py-3.5">
+        <div className="glass mt-6 rounded-2xl px-4 py-3.5">
           <p className="font-medium">
             Join {invite.organization_name} as {invite.role_label}
           </p>
@@ -266,11 +266,7 @@ export function SignUpForm() {
         </div>
       ) : null}
 
-      <form
-        noValidate
-        onSubmit={handleSubmit}
-        className="mt-8 rounded-2xl bg-card p-5 ring-1 ring-foreground/10 sm:p-7"
-      >
+      <form noValidate onSubmit={handleSubmit} className="mt-8">
         <fieldset disabled={pending || checkingInvite} className="space-y-5">
           <legend className="sr-only">{invite ? "Accept your invitation" : "Your account and organization"}</legend>
 

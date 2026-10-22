@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { AuthCard, AuthSwitch } from "@/components/auth/auth-card";
 import { AuthRedirectProvider } from "@/components/auth/redirect";
 import { SignUpFallback, SignUpForm } from "@/components/auth/sign-up-form";
-import { TextLink } from "@/components/marketing/primitives";
 
 export const metadata: Metadata = {
   title: "Create an account",
@@ -13,13 +13,15 @@ export const metadata: Metadata = {
 export default function SignUpPage() {
   return (
     <AuthRedirectProvider>
-      {/* The form reads ?invite= with useSearchParams, so it renders inside its own Suspense boundary. */}
-      <Suspense fallback={<SignUpFallback />}>
-        <SignUpForm />
-      </Suspense>
-      <p className="mt-6 text-center text-sm text-muted-foreground">
-        Already have an account? <TextLink href="/sign-in">Sign in</TextLink>
-      </p>
+      <AuthCard className="max-w-[30rem]">
+        {/* The form reads ?invite= with useSearchParams, so it renders inside its own Suspense boundary. */}
+        <Suspense fallback={<SignUpFallback />}>
+          <SignUpForm />
+        </Suspense>
+        <AuthSwitch href="/sign-in" label="Sign in">
+          Already have an account?
+        </AuthSwitch>
+      </AuthCard>
     </AuthRedirectProvider>
   );
 }

@@ -5,7 +5,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip, type TooltipContentP
 
 import { formatPercent } from "@/lib/app/format";
 
-import { TooltipCard } from "./chart-parts";
+import { TooltipCard, useChartAnimation } from "./chart-parts";
 import { OTHER_COLOR, seriesColor } from "./palette";
 
 export type DonutSlice = { key: string; label: string; value: number };
@@ -29,6 +29,7 @@ export function DonutChart({
   ariaLabel: string;
   maxSlices?: number;
 }) {
+  const animation = useChartAnimation(900);
   const positive = slices.filter((s) => s.value > 0).sort((a, b) => b.value - a.value);
   const head = positive.slice(0, maxSlices - 1);
   const tail = positive.slice(maxSlices - 1);
@@ -71,7 +72,9 @@ export function DonutChart({
               endAngle={-270}
               stroke="var(--card)"
               strokeWidth={2}
-              isAnimationActive={false}
+              cornerRadius={4}
+              paddingAngle={folded.length > 1 ? 1.5 : 0}
+              {...animation}
             >
               {folded.map((slice) => (
                 <Cell key={slice.key} fill={slice.color} />
@@ -82,12 +85,12 @@ export function DonutChart({
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
           <span className="text-xs text-muted-foreground">{centerLabel}</span>
-          <span className="text-base font-semibold">{centerValue}</span>
+          <span className="numeral text-[1.25rem] font-semibold">{centerValue}</span>
         </div>
       </div>
       <ul className="min-w-0 space-y-2">
         {folded.map((slice) => (
-          <li key={slice.key} className="flex items-center gap-2.5 text-[0.8125rem]">
+          <li key={slice.key} className="-mx-2 flex items-center gap-2.5 rounded-lg px-2 py-0.5 text-[0.8125rem] transition-colors duration-200 hover:bg-white/50 dark:hover:bg-white/[0.04]">
             <span aria-hidden className="size-2.5 shrink-0 rounded-[3px]" style={{ background: slice.color }} />
             <span className="min-w-0 flex-1 truncate">{slice.label}</span>
             <span className="font-semibold tabular">{format(slice.value)}</span>

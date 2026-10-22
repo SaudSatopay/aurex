@@ -8,7 +8,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
     <div className="flex flex-1 flex-col">
       <SkipLink />
       <SiteHeader />
-      <main id="main" tabIndex={-1} className="flex-1 scroll-mt-16 outline-none">
+      <main id="main" tabIndex={-1} className="-mt-16 flex-1 scroll-mt-16 outline-none">
         {children}
       </main>
       <SiteFooter />

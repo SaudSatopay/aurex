@@ -21,6 +21,11 @@ export const NEGATIVE_COLOR = "var(--destructive)";
 export const OTHER_COLOR = "color-mix(in oklch, var(--muted-foreground) 45%, var(--card))";
 
 export const GRID_COLOR = "var(--border)";
+/** Soft horizontal rules: dotted, half strength, so the data carries the ink. Spread onto CartesianGrid. */
+export const GRID_SOFT = { stroke: GRID_COLOR, strokeOpacity: 0.7, strokeDasharray: "2 5" } as const;
+/** Hover cursor over a band (bars) and over a point (lines). */
+export const CURSOR_BAND = { fill: "var(--primary)", fillOpacity: 0.06, radius: 6 } as const;
+export const CURSOR_LINE = { stroke: "var(--muted-foreground)", strokeWidth: 1, strokeDasharray: "3 3", strokeOpacity: 0.6 } as const;
 export const AXIS_TEXT = "var(--muted-foreground)";
 
 export function seriesColor(index: number): string {

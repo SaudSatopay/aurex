@@ -4,6 +4,7 @@ import { Area, AreaChart, ResponsiveContainer, YAxis } from "recharts";
 
 import { cn } from "@/lib/utils";
 
+import { AreaGradient, useChartAnimation, useGradientId } from "./chart-parts";
 import { SERIES_COLORS } from "./palette";
 
 /** Small trend line for a stat tile. Decorative: the figure beside it carries the value. */
@@ -20,21 +21,27 @@ export function Sparkline({
   height?: number;
   className?: string;
 }) {
+  const animation = useChartAnimation(900);
+  const gradientId = useGradientId("spark");
   if (data.length < 2) return null;
   return (
     <div className={cn("min-w-0", className)} style={{ height }} aria-hidden>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 2, right: 0, bottom: 2, left: 0 }} accessibilityLayer={false}>
+          <defs>
+            <AreaGradient id={gradientId} color={color} from={0.24} />
+          </defs>
           <YAxis hide domain={["dataMin", "dataMax"]} />
           <Area
             type="monotone"
             dataKey={dataKey}
             stroke={color}
             strokeWidth={1.75}
-            fill={color}
-            fillOpacity={0.1}
+            strokeLinecap="round"
+            fill={`url(#${gradientId})`}
+            fillOpacity={1}
             dot={false}
-            isAnimationActive={false}
+            {...animation}
           />
         </AreaChart>
       </ResponsiveContainer>
@@ -65,7 +72,7 @@ export function Meter({
       aria-valuemax={max}
       aria-valuenow={value ?? undefined}
       className={cn(
-        "h-1.5 w-full overflow-hidden rounded-full",
+        "h-1.5 w-full overflow-hidden rounded-full shadow-[inset_0_1px_1px_oklch(0_0_0/0.06)]",
         tone === "brand" && "bg-brand-100 dark:bg-brand-800/40",
         tone === "warning" && "bg-warning/20",
         tone === "danger" && "bg-destructive/15",
@@ -74,7 +81,7 @@ export function Meter({
     >
       <div
         className={cn(
-          "h-full rounded-full",
+          "h-full origin-left rounded-full transition-[width] duration-700 ease-(--ease-out) motion-reduce:transition-none",
           tone === "brand" && "bg-primary",
           tone === "warning" && "bg-warning",
           tone === "danger" && "bg-destructive",

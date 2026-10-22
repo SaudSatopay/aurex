@@ -20,6 +20,7 @@ import {
 } from "@/components/app/sections/inventory";
 import { useSession } from "@/components/app/session-provider";
 import { ChartSkeleton, EmptyState, ErrorState, QueryView, TableSkeleton } from "@/components/app/states";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { useFilters } from "@/hooks/use-filters";
 import { useOrgQuery } from "@/hooks/use-org-query";
 import { formatDate, formatMoney, formatPercent, formatShortDate } from "@/lib/app/format";
@@ -191,16 +192,20 @@ function Inventory() {
             <KpiLedger kpis={inventoryKpis(data)} currency={data.currency} />
           </section>
 
-          <div className="grid gap-6 xl:grid-cols-2">
-            {data.overview.status === "ok" ? (
-              <InventoryValuePanel inventory={data.overview} currency={data.currency} dimmed={query.isPlaceholderData} />
-            ) : (
-              <Panel title="Inventory value">
-                <EmptyState compact title="No snapshots in this period" description={data.overview.note} />
-              </Panel>
-            )}
-            <StockoutRatePanel data={data} />
-          </div>
+          <RevealGroup className="grid gap-6 xl:grid-cols-2" stagger={0.05}>
+            <RevealItem className="flex min-w-0 [&>*]:w-full" y={12}>
+              {data.overview.status === "ok" ? (
+                <InventoryValuePanel inventory={data.overview} currency={data.currency} dimmed={query.isPlaceholderData} />
+              ) : (
+                <Panel title="Inventory value">
+                  <EmptyState compact title="No snapshots in this period" description={data.overview.note} />
+                </Panel>
+              )}
+            </RevealItem>
+            <RevealItem className="flex min-w-0 [&>*]:w-full" y={12}>
+              <StockoutRatePanel data={data} />
+            </RevealItem>
+          </RevealGroup>
 
           <Panel
             title="Stockout risk"

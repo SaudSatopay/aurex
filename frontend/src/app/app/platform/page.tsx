@@ -15,6 +15,8 @@ import { JsonPreview } from "@/components/app/json-preview";
 import { DetailList, PageHeader, Panel, Stat } from "@/components/app/page";
 import { useSession } from "@/components/app/session-provider";
 import { EmptyState, Notice, QueryView, TableSkeleton } from "@/components/app/states";
+import { NumberTicker } from "@/components/kit/number-ticker";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -90,11 +92,11 @@ function CountList({ counts, empty }: { counts: Record<string, number>; empty: s
   const entries = Object.entries(counts);
   if (!entries.length) return <p className="text-sm text-muted-foreground">{empty}</p>;
   return (
-    <dl className="divide-y rounded-lg ring-1 ring-foreground/8">
+    <dl className="divide-y divide-(--glass-border) overflow-hidden rounded-xl border border-(--glass-border) bg-white/40 dark:bg-white/[0.04]">
       {entries
         .sort((a, b) => b[1] - a[1])
         .map(([key, value]) => (
-          <div key={key} className="flex items-center justify-between px-3 py-2 text-sm">
+          <div key={key} className="flex items-center justify-between px-3 py-2 text-sm transition-colors duration-200 hover:bg-white/50 dark:hover:bg-white/[0.04]">
             <dt>{humanize(key)}</dt>
             <dd className="font-semibold tabular">{formatNumber(value)}</dd>
           </div>
@@ -109,31 +111,39 @@ function Overview() {
     <QueryView query={overview} loading={<TableSkeleton rows={4} columns={4} />}>
       {(data) => (
         <div className="space-y-6">
-          <div className="grid gap-px overflow-hidden rounded-xl bg-border ring-1 ring-foreground/10 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="bg-card p-5">
-              <Stat label="Organizations" value={formatNumber(data.organizations)} />
-            </div>
-            <div className="bg-card p-5">
-              <Stat label="Users" value={formatNumber(data.users)} />
-            </div>
-            <div className="bg-card p-5">
-              <Stat label="Integrations" value={formatNumber(data.integrations)} />
-            </div>
-            <div className="bg-card p-5">
-              <Stat label="Database size" value={formatBytes(data.database_bytes)} />
+          <div className="overflow-hidden rounded-2xl glass">
+            <div className="-mt-px -ml-px grid sm:grid-cols-2 xl:grid-cols-4">
+              <div className="border-t border-l border-(--glass-border) p-5 transition-colors duration-300 ease-(--ease-out) hover:bg-white/50 dark:hover:bg-white/[0.04]">
+                <Stat label="Organizations" value={<NumberTicker value={data.organizations} format={(n) => formatNumber(Math.round(n))} />} />
+              </div>
+              <div className="border-t border-l border-(--glass-border) p-5 transition-colors duration-300 ease-(--ease-out) hover:bg-white/50 dark:hover:bg-white/[0.04]">
+                <Stat label="Users" value={<NumberTicker value={data.users} format={(n) => formatNumber(Math.round(n))} />} />
+              </div>
+              <div className="border-t border-l border-(--glass-border) p-5 transition-colors duration-300 ease-(--ease-out) hover:bg-white/50 dark:hover:bg-white/[0.04]">
+                <Stat label="Integrations" value={<NumberTicker value={data.integrations} format={(n) => formatNumber(Math.round(n))} />} />
+              </div>
+              <div className="border-t border-l border-(--glass-border) p-5 transition-colors duration-300 ease-(--ease-out) hover:bg-white/50 dark:hover:bg-white/[0.04]">
+                <Stat label="Database size" value={formatBytes(data.database_bytes)} />
+              </div>
             </div>
           </div>
-          <div className="grid gap-6 lg:grid-cols-3">
-            <Panel title="Integrations by status">
-              <CountList counts={data.integrations_by_status} empty="No integrations." />
-            </Panel>
-            <Panel title="Sync jobs, last 24 hours">
-              <CountList counts={data.sync_jobs_24h} empty="No sync jobs in the last 24 hours." />
-            </Panel>
-            <Panel title="Background jobs, last 24 hours">
-              <CountList counts={data.background_jobs_24h} empty="No background jobs in the last 24 hours." />
-            </Panel>
-          </div>
+          <RevealGroup className="grid gap-6 lg:grid-cols-3" stagger={0.05}>
+            <RevealItem className="flex min-w-0" y={12}>
+              <Panel className="w-full" title="Integrations by status">
+                <CountList counts={data.integrations_by_status} empty="No integrations." />
+              </Panel>
+            </RevealItem>
+            <RevealItem className="flex min-w-0" y={12}>
+              <Panel className="w-full" title="Sync jobs, last 24 hours">
+                <CountList counts={data.sync_jobs_24h} empty="No sync jobs in the last 24 hours." />
+              </Panel>
+            </RevealItem>
+            <RevealItem className="flex min-w-0" y={12}>
+              <Panel className="w-full" title="Background jobs, last 24 hours">
+                <CountList counts={data.background_jobs_24h} empty="No background jobs in the last 24 hours." />
+              </Panel>
+            </RevealItem>
+          </RevealGroup>
           <Panel title="Runtime">
             <DetailList
               items={[

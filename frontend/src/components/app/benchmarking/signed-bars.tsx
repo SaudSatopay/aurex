@@ -1,5 +1,8 @@
+"use client";
+
 import type { ReactNode } from "react";
 
+import { barFill, GrowBar } from "@/components/app/charts/bar-list";
 import { CONTEXT_COLOR, SERIES_COLORS } from "@/components/app/charts/palette";
 import { cn } from "@/lib/utils";
 
@@ -26,29 +29,35 @@ export function SignedBarList({ items, label, className }: { items: SignedBarIte
   const emphasis = items.some((i) => i.highlight);
   return (
     <ul className={cn("space-y-2.5", className)} aria-label={label}>
-      {items.map((item) => {
+      {items.map((item, index) => {
         const has = typeof item.value === "number" && Number.isFinite(item.value);
         const width = has ? (Math.abs(item.value as number) / span) * 100 : 0;
         const left = has && (item.value as number) < 0 ? zero - width : zero;
+        const tint = !emphasis || item.highlight ? SERIES_COLORS[0] : CONTEXT_COLOR;
         return (
-          <li key={item.key} className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-x-3 gap-y-1">
+          <li
+            key={item.key}
+            className="-mx-2 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-x-3 gap-y-1 rounded-lg px-2 py-1 transition-colors duration-200 hover:bg-white/50 dark:hover:bg-white/[0.04]"
+          >
             <div className="min-w-0">
               <p className={cn("truncate text-[0.8125rem]", item.highlight ? "font-semibold" : "font-medium")}>{item.label}</p>
               {item.sublabel ? <p className="truncate text-xs text-muted-foreground">{item.sublabel}</p> : null}
             </div>
             <span className={cn("text-[0.8125rem] tabular", has ? "font-semibold" : "text-muted-foreground")}>{has ? item.display : "Not available"}</span>
-            <div className="relative col-span-2 h-2" aria-hidden>
-              {min < 0 ? <span className="absolute -top-0.5 -bottom-0.5 w-px bg-foreground/40" style={{ left: `${zero}%` }} /> : null}
+            <div className="relative col-span-2 h-2 rounded-full bg-foreground/[0.04] dark:bg-white/[0.05]" aria-hidden>
+              {min < 0 ? <span className="absolute -top-0.5 -bottom-0.5 z-[1] w-px bg-foreground/40" style={{ left: `${zero}%` }} /> : null}
               {has && width > 0 ? (
-                <span
-                  className={cn("absolute top-0 h-2", (item.value as number) < 0 ? "rounded-l-[4px]" : "rounded-r-[4px]")}
-                  style={{
-                    left: `${left}%`,
-                    width: `${Math.max(width, 0.6)}%`,
-                    background: !emphasis || item.highlight ? SERIES_COLORS[0] : CONTEXT_COLOR,
-                    opacity: !emphasis || item.highlight ? 1 : 0.45,
-                  }}
-                />
+                <div className="absolute top-0 h-2" style={{ left: `${left}%`, width: `${Math.max(width, 0.6)}%` }}>
+                  <GrowBar
+                    className={cn("h-2", (item.value as number) < 0 ? "origin-right rounded-l-full" : "rounded-r-full")}
+                    delay={Math.min(index, 10) * 0.04}
+                    style={{
+                      width: "100%",
+                      background: barFill(tint),
+                      opacity: !emphasis || item.highlight ? 1 : 0.45,
+                    }}
+                  />
+                </div>
               ) : null}
             </div>
           </li>

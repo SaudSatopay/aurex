@@ -5,7 +5,8 @@ import type { ReactNode } from "react";
 
 import { StatusBadge } from "@/components/app/badges";
 import { ExternalLink, hostOf } from "@/components/app/decision-lab/common";
-import { formatDate, formatMoney } from "@/lib/app/format";
+import { DateStamp } from "@/components/app/print";
+import { formatMoney } from "@/lib/app/format";
 import { formatReported, verificationInfo } from "@/lib/app/intelligence-format";
 import type { CompanyProfile, MarketDataStatus, VerificationStatus } from "@/lib/app/intelligence-types";
 import { cn } from "@/lib/utils";
@@ -90,16 +91,19 @@ export function MarketSnapshotBlock({
   } else {
     body = (
       <>
-        <p>
-          <span className="font-semibold tabular">{formatMoney(snap.close_price, snap.currency ?? "INR", { decimals: 2 })}</span>{" "}
-          <span className="text-muted-foreground">
-            close on {formatDate(snap.as_of)}
-            {snap.exchange ? ` · ${snap.exchange}${snap.ticker ? `: ${snap.ticker}` : ""}` : ""}
-          </span>
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="numeral text-[1.375rem] leading-tight font-semibold">{formatMoney(snap.close_price, snap.currency ?? "INR", { decimals: 2 })}</p>
+            <p className="text-muted-foreground">
+              Closing price
+              {snap.exchange ? ` · ${snap.exchange}${snap.ticker ? `: ${snap.ticker}` : ""}` : ""}
+            </p>
+          </div>
+          <DateStamp date={snap.as_of} label="Close on" className="mt-0.5" />
+        </div>
         {snap.market_cap !== null ? (
           <p>
-            Market cap <span className="font-semibold tabular">{formatReported(snap.market_cap, snap.market_cap_unit, snap.currency)}</span>
+            Market cap <span className="numeral text-[0.9375rem] font-semibold">{formatReported(snap.market_cap, snap.market_cap_unit, snap.currency)}</span>
           </p>
         ) : null}
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
@@ -111,9 +115,15 @@ export function MarketSnapshotBlock({
     );
   }
   return (
-    <div className={cn("flex items-start gap-2.5 rounded-lg bg-muted/55 px-3 py-2.5 text-[0.8125rem] leading-relaxed", compact && "py-2")} aria-label="Share price">
-      <LineChartIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-      <div className="min-w-0 space-y-1">{body}</div>
+    <div
+      className={cn(
+        "flex items-start gap-2.5 rounded-lg border border-(--glass-border) bg-paper/55 px-3 py-2.5 text-[0.8125rem] leading-relaxed",
+        compact && "py-2",
+      )}
+      aria-label="Share price"
+    >
+      {snap && company.is_listed && company.securities.length ? null : <LineChartIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />}
+      <div className="min-w-0 flex-1 space-y-1">{body}</div>
     </div>
   );
 }

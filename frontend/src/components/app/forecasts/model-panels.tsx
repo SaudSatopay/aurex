@@ -1,18 +1,21 @@
 "use client";
 
 import { CircleCheckIcon, CrownIcon, FlagIcon, TriangleAlertIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 
+import { Seal } from "@/components/art/ornaments";
 import { StatusBadge } from "@/components/app/badges";
 import { BarList } from "@/components/app/charts/bar-list";
 import { useChartView } from "@/components/app/charts/chart-parts";
 import { CONTEXT_COLOR, SERIES_COLORS } from "@/components/app/charts/palette";
 import { TrendChart } from "@/components/app/charts/trend-chart";
 import { DataTable, type Column } from "@/components/app/data-table";
+import { CopyButton } from "@/components/app/form";
 import { JsonPreview } from "@/components/app/json-preview";
 import { DefinitionButton } from "@/components/app/kpi";
 import { DetailList, NoteList, Panel } from "@/components/app/page";
-import { HashValue, ReliabilityBadge } from "@/components/app/decision-lab/common";
+import { GoldRules, sealWords, Serial } from "@/components/app/print";
+import { ReliabilityBadge, reliabilityVerdict } from "@/components/app/decision-lab/common";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -53,41 +56,62 @@ function MetricTile({
   emphasis?: boolean;
 }) {
   return (
-    <div className="min-w-0 border-t border-l border-border bg-card px-4 py-3.5">
+    <div className="min-w-0 border-t border-l border-(--glass-border) px-4 py-3 transition-colors duration-300 ease-(--ease-out) hover:bg-gold/[0.05]">
       <div className="flex items-start justify-between gap-2">
         <p className="text-[0.8125rem] font-medium text-muted-foreground">{label}</p>
         <DefinitionButton label={label} formula={formula} description={description} />
       </div>
-      <p className={cn("mt-1 leading-tight font-semibold tracking-[-0.01em]", emphasis ? "text-[1.5rem]" : "text-lg")}>{value}</p>
-      {hint ? <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{hint}</p> : null}
+      <p className={cn("numeral mt-1 leading-none font-semibold", emphasis ? "text-[2.375rem]" : "text-[1.3125rem]")}>{value}</p>
+      {hint ? <p className="mt-1 text-xs leading-snug text-muted-foreground">{hint}</p> : null}
     </div>
   );
 }
 
+/**
+ * The model card as a certificate: a sheet inside a gold double rule, the selected model as its title,
+ * WAPE and skill as its denominations, the reliability verdict sealed in the verdict's ink (the verdict
+ * words stay printed beside it), and the data fingerprint, version, code version and seed as its serial.
+ */
 export function ModelCard({ model, methodology, currency }: { model: ForecastModel; methodology?: Methodology; currency: string }) {
   const m = model.metrics;
   const unitFormat = unitFormatter(model.unit, currency);
   const coverageOk = isNum(m.coverage_80) && m.coverage_80 >= 0.7 && m.coverage_80 <= 0.95;
   const chosen = model.candidates.find((c) => c.algorithm === model.algorithm);
+  const verdict = reliabilityVerdict(model.reliability);
+  const headingId = useId();
   return (
-    <Panel
-      title="Model card"
-      description={`${model.target_label} · ${model.level_label} · ${FREQUENCY_LABELS[model.frequency] ?? model.frequency} · version ${model.version}`}
-      actions={<ReliabilityBadge reliability={model.reliability} />}
-    >
-      <div className="space-y-5">
-        <div>
+    <section aria-labelledby={headingId} className="relative flex min-w-0 flex-col rounded-2xl glass text-card-foreground">
+      <GoldRules />
+      <div className="relative space-y-5 px-5 pt-5 pb-6 sm:px-6">
+        <header className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 id={headingId} className="font-heading text-[0.9375rem] leading-snug font-semibold">
+              Model card
+            </h2>
+            <p className="mt-0.5 text-[0.8125rem] leading-relaxed text-muted-foreground">
+              {`${model.target_label} · ${model.level_label} · ${FREQUENCY_LABELS[model.frequency] ?? model.frequency} · version ${model.version}`}
+            </p>
+            <div className="mt-2">
+              <ReliabilityBadge reliability={model.reliability} />
+            </div>
+          </div>
+          {verdict ? (
+            <Seal text={sealWords(verdict.label)} mark={model.algorithm} tone={verdict.seal} rotate={-8} className="-mt-1 -mr-1 size-[5.25rem] shrink-0" />
+          ) : null}
+        </header>
+
+        <div className="border-t border-gold/35 pt-4">
           <p className="text-xs text-muted-foreground">Selected model</p>
-          <p className="mt-0.5 font-heading text-lg font-semibold">{algorithmLabel(model.algorithm)}</p>
-          {chosen?.description ? <p className="mt-0.5 text-sm text-muted-foreground">{chosen.description}</p> : null}
+          <p className="text-display mt-1 text-[1.875rem]">{algorithmLabel(model.algorithm)}</p>
+          {chosen?.description ? <p className="mt-1.5 text-sm text-muted-foreground">{chosen.description}</p> : null}
           <p className="mt-2 flex items-start gap-2 text-sm">
-            <CircleCheckIcon className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+            <CircleCheckIcon className="mt-0.5 size-4 shrink-0 text-verdigris" aria-hidden />
             <span>{skillSentence(model)}</span>
           </p>
         </div>
 
-        <div className="@container overflow-hidden rounded-xl ring-1 ring-foreground/10">
-          <div className="-mt-px -ml-px grid grid-cols-1 @xs:grid-cols-2 @xl:grid-cols-3">
+        <div className="@container overflow-hidden rounded-lg ring-1 ring-(--glass-border)">
+          <div className="-mt-px -ml-px grid grid-cols-1 @xs:grid-cols-2">
             <MetricTile
               emphasis
               label="WAPE"
@@ -96,6 +120,16 @@ export function ModelCard({ model, methodology, currency }: { model: ForecastMod
               formula="Σ|actual − forecast| ÷ Σ|actual|"
               description="Weighted absolute percentage error across the backtest folds. Lower is better."
             />
+            <MetricTile
+              emphasis
+              label="Skill vs baseline"
+              value={isNum(model.skill_vs_baseline) ? formatPercent(model.skill_vs_baseline, { signed: true }) : MISSING}
+              hint={isNum(model.skill_vs_baseline) ? "Lower error than the best baseline when positive" : "No comparison with a baseline is available"}
+              formula="1 − WAPE ÷ baseline WAPE"
+              description="How much of the best baseline's error the selected model removes, on the same backtests."
+            />
+          </div>
+          <div className="-mt-px -ml-px grid grid-cols-1 @xs:grid-cols-2 @xl:grid-cols-3">
             <MetricTile
               label="80% interval coverage"
               value={formatPercent(m.coverage_80)}
@@ -120,7 +154,7 @@ export function ModelCard({ model, methodology, currency }: { model: ForecastMod
           </div>
         </div>
 
-        <div className="rounded-lg bg-muted/60 px-3.5 py-3 text-[0.8125rem] leading-relaxed">
+        <div className="border-l-2 border-gold/70 pl-3.5 text-[0.8125rem] leading-relaxed">
           <p className="flex flex-wrap items-center gap-2 font-medium">
             Reliability verdict <ReliabilityBadge reliability={model.reliability} />
           </p>
@@ -131,12 +165,28 @@ export function ModelCard({ model, methodology, currency }: { model: ForecastMod
           </p>
         </div>
 
+        <div className="space-y-2 border-y border-dashed border-gold-deep/30 py-3">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Serial value={model.data_fingerprint} label="Data fingerprint" />
+            {model.data_fingerprint ? <CopyButton value={model.data_fingerprint} label="Copy" /> : null}
+          </div>
+          <p className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-muted-foreground">
+            <span>
+              <span className="font-sans">Version</span> <span className="text-foreground">v{model.version}</span>
+            </span>
+            <span>
+              <span className="font-sans">Code version</span> <span className="text-foreground">{model.code_version ?? MISSING}</span>
+            </span>
+            <span>
+              <span className="font-sans">Random seed</span> <span className="text-foreground">{model.random_seed ?? MISSING}</span>
+            </span>
+          </p>
+        </div>
+
         <DetailList
           items={[
             { label: "Training window", value: `${formatDate(model.training_start)} to ${formatDate(model.training_end)}` },
             { label: "Observations", value: formatNumber(model.n_observations ?? null) },
-            { label: "Data fingerprint", value: <HashValue value={model.data_fingerprint} /> },
-            { label: "Code version · random seed", value: `${model.code_version ?? MISSING} · ${model.random_seed ?? MISSING}` },
             { label: "Trained", value: formatDateTime(model.created_at) },
             {
               label: "Hyperparameters",
@@ -159,7 +209,7 @@ export function ModelCard({ model, methodology, currency }: { model: ForecastMod
           </div>
         ) : null}
       </div>
-    </Panel>
+    </section>
   );
 }
 
@@ -266,7 +316,7 @@ export function BacktestsPanel({ detail, currency }: { detail: ForecastDetail; c
             Compare with
           </Label>
           <Select value={compareWith} onValueChange={setCompareWith}>
-            <SelectTrigger id={selectId} size="sm" className="h-7 w-[13rem] bg-background text-[0.8125rem]">
+            <SelectTrigger id={selectId} size="sm" className="h-7 w-[13rem] bg-white/60 text-[0.8125rem] dark:bg-white/[0.06]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent position="popper" align="end">
@@ -335,7 +385,7 @@ export function VersionsPanel({ detail, onSelect, selectedId }: { detail: Foreca
           { key: "w", header: "WAPE", align: "right", cell: (r) => formatPercent(r.wape), sortValue: (r) => r.wape },
           { key: "r", header: "Reliability", cell: (r) => <ReliabilityBadge reliability={r.reliability} /> },
           { key: "t", header: "Trained through", cell: (r) => formatDate(r.training_end), sortValue: (r) => r.training_end },
-          { key: "f", header: "Fingerprint", cell: (r) => <code className="font-mono text-xs">{r.data_fingerprint}</code> },
+          { key: "f", header: "Fingerprint", cell: (r) => <Serial value={r.data_fingerprint} /> },
           {
             key: "s",
             header: "Status",

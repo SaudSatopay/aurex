@@ -108,7 +108,7 @@ export function TextField({
         required={base.required}
         aria-invalid={base.error ? true : undefined}
         aria-describedby={describedBy(id, base.error, base.hint)}
-        className="bg-background"
+        className="bg-white/60 dark:bg-white/[0.04]"
       />
     </FieldShell>
   );
@@ -132,7 +132,7 @@ export function TextAreaField({
         maxLength={maxLength}
         aria-invalid={base.error ? true : undefined}
         aria-describedby={describedBy(id, base.error, base.hint)}
-        className="bg-background"
+        className="bg-white/60 dark:bg-white/[0.04]"
       />
     </FieldShell>
   );
@@ -158,7 +158,7 @@ export function SelectField({
       <Select value={value || undefined} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger
           id={id}
-          className="w-full bg-background"
+          className="w-full bg-white/60 dark:bg-white/[0.04]"
           aria-invalid={base.error ? true : undefined}
           aria-describedby={describedBy(id, base.error, base.hint)}
         >
@@ -203,7 +203,7 @@ export function CopyButton({ value, label = "Copy" }: { value: string; label?: s
 export function FormError({ message }: { message: string | null }) {
   if (!message) return null;
   return (
-    <div role="alert" className="flex items-start gap-2.5 rounded-lg bg-destructive/6 px-3.5 py-3 text-sm ring-1 ring-destructive/25">
+    <div role="alert" className="flex items-start gap-2.5 rounded-xl bg-destructive/6 px-3.5 py-3 text-sm shadow-[inset_0_1px_0_var(--glass-edge)] ring-1 ring-destructive/25">
       <CircleAlertIcon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
       <span>{message}</span>
     </div>

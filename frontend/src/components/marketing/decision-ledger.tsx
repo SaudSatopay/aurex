@@ -7,6 +7,8 @@ import { useId, useState, type CSSProperties } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
+import { SpecimenOverprint, WaveBand } from "@/components/art/ornaments";
+
 import { EvidenceTag, IllustrativeLabel, type EvidenceBasis } from "./evidence";
 
 /*
@@ -187,36 +189,47 @@ export function DecisionLedger() {
   }.`;
 
   const stepButton =
-    "grid size-9 place-items-center rounded-md text-navy-100 transition-colors outline-none hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-sky-accent disabled:pointer-events-none disabled:opacity-35";
+    "press grid size-9 place-items-center rounded-md text-ink outline-none hover:bg-ink/6 focus-visible:ring-2 focus-visible:ring-prussian disabled:pointer-events-none disabled:opacity-35";
 
   return (
     <MotionConfig reducedMotion="user">
       <figure
         aria-labelledby={titleId}
-        className="mk-rise overflow-hidden rounded-2xl bg-navy-950 text-white shadow-[0_40px_80px_-48px] shadow-black/70 ring-1 ring-white/10"
+        className="relative isolate overflow-hidden rounded-[0.9rem] bg-sheet text-ink shadow-[inset_0_0_0_1px_var(--rule),inset_0_0_0_7px_var(--sheet),inset_0_0_0_8px_var(--gold-rule),0_50px_100px_-40px_oklch(0.06_0.03_264/0.95)]"
         style={order(0)}
       >
-        <div className="flex flex-col gap-3 border-b border-white/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+        <SpecimenOverprint className="-z-10" />
+        <div className="flex flex-col gap-4 px-5 pt-6 pb-3 sm:flex-row sm:items-end sm:justify-between sm:px-8">
           <div>
-            <p id={titleId} className="font-display text-lg font-semibold tracking-tight">
+            <p id={titleId} className="font-display text-[1.75rem] leading-none font-semibold tracking-[-0.02em]">
               Decision Lab
             </p>
-            <p className="mt-0.5 text-sm text-navy-300">Monthly effect at NovaMart&apos;s {STORES} busiest stores</p>
+            <p className="mt-2 text-sm text-muted-foreground">Monthly effect at NovaMart&apos;s {STORES} busiest stores</p>
+            <div className="mt-3">
+              <IllustrativeLabel surface="light" />
+            </div>
           </div>
-          <IllustrativeLabel surface="dark" />
+          <div className="sm:text-right">
+            <p className="text-sm text-muted-foreground">Operating profit, per month</p>
+            <Figure
+              value={profitRow.value}
+              className="numeral mt-1 text-[2.75rem] leading-none font-semibold whitespace-nowrap sm:text-[3.5rem]"
+            />
+          </div>
         </div>
+        <WaveBand tone="ink" className="h-5 px-5 sm:px-8" waves={14} copies={5} />
 
-        <div className="grid gap-6 border-b border-white/10 px-5 py-5 sm:px-7 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-end lg:gap-12">
+        <div className="grid gap-6 border-b border-rule px-5 py-5 sm:px-8 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-end lg:gap-12">
           <div className="mk-rise" style={order(1)}>
-            <p id={decisionId} className="text-sm text-navy-300">
+            <p id={decisionId} className="text-sm text-muted-foreground">
               Decision
             </p>
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-[1.0625rem] text-navy-50">
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-[1.0625rem] text-ink">
               <span>Hire</span>
               <span
                 role="group"
                 aria-labelledby={decisionId}
-                className="inline-flex items-center gap-0.5 rounded-lg p-0.5 ring-1 ring-white/15"
+                className="inline-flex items-center gap-0.5 rounded-lg bg-paper/60 p-0.5 ring-1 ring-rule-strong"
               >
                 <button
                   type="button"
@@ -227,7 +240,7 @@ export function DecisionLedger() {
                 >
                   <MinusIcon className="size-4" aria-hidden />
                 </button>
-                <span className="tabular w-9 text-center text-lg font-semibold text-white">{hires}</span>
+                <span className="numeral w-10 text-center text-xl font-semibold text-ink">{hires}</span>
                 <button
                   type="button"
                   className={stepButton}
@@ -243,7 +256,7 @@ export function DecisionLedger() {
           </div>
 
           <div className="mk-rise" style={order(2)}>
-            <p id={questionId} className="text-sm text-navy-300">
+            <p id={questionId} className="text-sm text-muted-foreground">
               What supports a revenue effect?
             </p>
             <ToggleGroup
@@ -254,13 +267,13 @@ export function DecisionLedger() {
               }}
               aria-labelledby={questionId}
               spacing={1}
-              className="mt-2 grid w-full grid-cols-3 rounded-lg p-1 ring-1 ring-white/15 sm:inline-grid sm:w-auto"
+              className="mt-2 grid w-full grid-cols-3 rounded-lg bg-paper/60 p-1 ring-1 ring-rule-strong sm:inline-grid sm:w-auto"
             >
               {OPTIONS.map((option) => (
                 <ToggleGroupItem
                   key={option.value}
                   value={option.value}
-                  className="h-auto min-h-9 rounded-md px-3 py-2 text-center text-sm leading-tight whitespace-normal text-navy-200 hover:bg-white/10 hover:text-white focus-visible:ring-sky-accent/70 aria-pressed:bg-white data-[state=on]:bg-white data-[state=on]:text-navy-950 sm:px-4"
+                  className="press h-auto min-h-9 rounded-md px-3 py-2 text-center text-sm leading-tight whitespace-normal text-ink/75 hover:bg-ink/6 hover:text-ink focus-visible:ring-prussian/60 aria-pressed:bg-ink data-[state=on]:bg-ink data-[state=on]:text-paper sm:px-4"
                 >
                   {option.label}
                 </ToggleGroupItem>
@@ -274,15 +287,15 @@ export function DecisionLedger() {
             Decision Lab result for hiring {hires} more store associates. Illustrative, NovaMart demo data
             (synthetic).
           </caption>
-          <thead className="hidden text-xs text-navy-300 sm:table-header-group">
+          <thead className="hidden text-xs text-muted-foreground sm:table-header-group">
             <tr>
-              <th scope="col" className="w-[24%] pt-4 pr-3 pb-1 pl-7 font-medium">
+              <th scope="col" className="w-[24%] pt-4 pr-3 pb-1 pl-8 font-medium">
                 Line
               </th>
               <th scope="col" className="w-[28%] px-4 pt-4 pb-1 text-right font-medium">
                 Effect per month
               </th>
-              <th scope="col" className="pt-4 pr-7 pb-1 pl-6 font-medium">
+              <th scope="col" className="pt-4 pr-8 pb-1 pl-6 font-medium">
                 Basis
               </th>
             </tr>
@@ -294,48 +307,46 @@ export function DecisionLedger() {
                 className={cn(
                   "mk-rise align-top",
                   i > 0 && "border-t",
-                  row.total ? "border-white/25" : "border-white/8",
+                  row.total ? "border-rule-strong" : "border-rule",
                 )}
                 style={order(3 + i)}
               >
-                <th scope="row" className="py-4 pr-3 pl-5 text-left font-normal sm:pl-7">
-                  <span
-                    className={cn("block text-[0.9375rem]", row.total ? "font-semibold text-white" : "text-navy-100")}
-                  >
+                <th scope="row" className="py-4 pr-3 pl-5 text-left font-normal sm:pl-8">
+                  <span className={cn("block text-[0.9375rem]", row.total ? "font-semibold text-ink" : "text-ink/85")}>
                     {row.label}
                   </span>
                   <span className="mt-2.5 block sm:hidden">
-                    <EvidenceTag basis={row.basis} surface="dark" />
-                    <span className="mt-1.5 block text-xs leading-relaxed text-navy-300">{row.detail}</span>
+                    <EvidenceTag basis={row.basis} surface="light" />
+                    <span className="mt-1.5 block text-xs leading-relaxed text-muted-foreground">{row.detail}</span>
                   </span>
                 </th>
                 <td className="py-4 pr-5 pl-2 text-right sm:px-4">
                   <Figure
                     value={row.value}
                     className={cn(
-                      "tabular whitespace-nowrap",
+                      "whitespace-nowrap",
                       row.value === NO_CHANGE
-                        ? "pt-0.5 text-[0.9375rem] font-medium text-navy-300"
-                        : "text-lg font-semibold sm:text-xl",
-                      row.value !== NO_CHANGE && (row.total ? "text-white" : "text-navy-50"),
+                        ? "pt-0.5 text-[0.9375rem] font-medium text-muted-foreground"
+                        : "numeral text-xl font-semibold sm:text-2xl",
+                      row.value !== NO_CHANGE && "text-ink",
                     )}
                   />
                   {row.range ? (
-                    <span className="tabular mt-1 block text-xs leading-snug text-navy-300">{row.range}</span>
+                    <span className="tabular mt-1 block text-xs leading-snug text-muted-foreground">{row.range}</span>
                   ) : null}
                 </td>
-                <td className="hidden py-4 pr-7 pl-6 sm:table-cell">
-                  <EvidenceTag basis={row.basis} surface="dark" />
-                  <p className="mt-2 max-w-[52ch] text-sm leading-relaxed text-navy-300">{row.detail}</p>
+                <td className="hidden py-4 pr-8 pl-6 sm:table-cell">
+                  <EvidenceTag basis={row.basis} surface="light" />
+                  <p className="mt-2 max-w-[52ch] text-sm leading-relaxed text-muted-foreground">{row.detail}</p>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        <div className="mk-rise border-t border-white/10 bg-white/[0.03] px-5 py-4 sm:px-7" style={order(7)}>
-          <p className="max-w-[80ch] text-sm leading-relaxed text-navy-200">
-            <span className="font-medium text-white">Reading: </span>
+        <div className="mk-rise border-t border-rule bg-paper/50 px-5 py-4 sm:px-8" style={order(7)}>
+          <p className="max-w-[80ch] text-sm leading-relaxed text-ink/80">
+            <span className="font-semibold text-ink">Reading: </span>
             {reading(basis, sim)}
           </p>
         </div>

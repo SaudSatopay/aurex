@@ -17,6 +17,8 @@ import {
 import type { Kpi } from "@/lib/app/types";
 import { cn } from "@/lib/utils";
 
+import { NumberTicker } from "@/components/kit/number-ticker";
+
 import { StatusBadge } from "./badges";
 
 /** Readable text for KPI statuses that mean "there is no honest number to show". */
@@ -170,7 +172,7 @@ export function KpiCell({
   const showChange = hasValue && kpi.comparison !== null && kpi.comparison !== undefined;
 
   return (
-    <div className={cn("flex min-w-0 flex-col gap-1.5 bg-card px-4 py-4 sm:px-5", className)}>
+    <div className={cn("group/kpi flex min-w-0 flex-col gap-1.5 px-4 py-4 transition-colors duration-300 ease-(--ease-out) sm:px-5 hover:bg-gold/[0.06] dark:hover:bg-white/[0.04]", className)}>
       <div className="flex items-start justify-between gap-2">
         <p className="text-[0.8125rem] leading-snug font-medium text-muted-foreground">{kpi.label}</p>
         <DefinitionButton
@@ -184,8 +186,8 @@ export function KpiCell({
       </div>
 
       {hasValue ? (
-        <p className="text-[1.5rem] leading-none font-semibold tracking-[-0.02em] text-foreground" title={fullValue}>
-          {formatKpiValue(kpi, currency)}
+        <p className="numeral text-[2rem] leading-none font-semibold text-foreground" title={fullValue}>
+          <NumberTicker value={kpi.value as number} format={(n) => formatKpiValue({ ...kpi, value: n }, currency)} />
         </p>
       ) : (
         <p className="pt-1 text-[0.9375rem] leading-tight font-medium text-muted-foreground">
@@ -245,7 +247,7 @@ export function KpiLedger({
   columns?: string;
 }) {
   return (
-    <div className={cn("overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10", className)}>
+    <div className={cn("overflow-hidden rounded-2xl glass", className)}>
       <div className={cn("-mt-px -ml-px grid", columns)}>
         {kpis.map((kpi) => (
           <KpiCell
@@ -253,7 +255,7 @@ export function KpiLedger({
             kpi={kpi}
             currency={currency}
             comparisonLabel={comparisonLabel}
-            className="border-t border-l border-border"
+            className="border-t border-l border-(--glass-border)"
           />
         ))}
       </div>

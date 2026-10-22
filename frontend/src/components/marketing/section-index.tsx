@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -15,6 +16,7 @@ export type SectionIndexGroup = {
  */
 export function SectionIndex({ groups, label }: { groups: SectionIndexGroup[]; label: string }) {
   const [active, setActive] = useState<string | null>(null);
+  const still = useReducedMotion();
 
   useEffect(() => {
     const ids = groups.flatMap((group) => group.items.map((item) => item.id));
@@ -42,8 +44,8 @@ export function SectionIndex({ groups, label }: { groups: SectionIndexGroup[]; l
       <ol className="space-y-5">
         {groups.map((group) => (
           <li key={group.name}>
-            <p className="text-xs font-medium text-muted-foreground">{group.name}</p>
-            <ol className="mt-1.5 space-y-0.5 border-l">
+            <p className="font-display text-[0.9375rem] leading-snug font-semibold tracking-[-0.01em] text-ink">{group.name}</p>
+            <ol className="mt-1.5 space-y-0.5 border-l border-rule">
               {group.items.map((item) => {
                 const current = active === item.id;
                 return (
@@ -52,13 +54,21 @@ export function SectionIndex({ groups, label }: { groups: SectionIndexGroup[]; l
                       href={`#${item.id}`}
                       aria-current={current ? "location" : undefined}
                       className={cn(
-                        "-ml-px block border-l-2 py-1.5 pl-3 text-sm leading-snug transition-colors outline-none focus-visible:rounded-r-md focus-visible:ring-3 focus-visible:ring-ring/50",
-                        current
-                          ? "border-primary font-medium text-foreground"
-                          : "border-transparent text-muted-foreground hover:border-foreground/30 hover:text-foreground",
+                        "relative -ml-px block rounded-r-[0.4rem] py-1.5 pr-2 pl-3.5 text-sm leading-snug transition-colors duration-200 outline-none focus-visible:ring-3 focus-visible:ring-prussian/40",
+                        current ? "font-medium text-ink" : "text-muted-foreground hover:text-ink",
                       )}
                     >
-                      {item.label}
+                      {current ? (
+                        // The marker glides to the section in view (critically damped; instant under reduced motion):
+                        // a struck gold rule on the index line, the one active mark.
+                        <motion.span
+                          aria-hidden
+                          layoutId="section-index-marker"
+                          transition={still ? { duration: 0 } : { type: "spring", bounce: 0, visualDuration: 0.4 }}
+                          className="absolute inset-0 rounded-r-[0.4rem] bg-ink/[0.05] shadow-[inset_2px_0_0_var(--gold-deep)]"
+                        />
+                      ) : null}
+                      <span className="relative">{item.label}</span>
                     </a>
                   </li>
                 );

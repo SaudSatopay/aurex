@@ -56,14 +56,14 @@ function WebhookSecret({ integration }: { integration: Integration }) {
         <div className="space-y-1.5">
           <p className="text-xs text-muted-foreground">Endpoint</p>
           <div className="flex flex-wrap items-center gap-2">
-            <code className="min-w-0 flex-1 rounded-md bg-muted px-3 py-2 font-mono text-xs break-all">{url}</code>
+            <code className="min-w-0 flex-1 rounded-lg bg-white/50 px-3 py-2 font-mono text-xs break-all ring-1 ring-(--glass-border) ring-inset dark:bg-white/[0.05]">{url}</code>
             <CopyButton value={url} label="Copy URL" />
           </div>
         </div>
         <div className="space-y-1.5">
           <p className="text-xs text-muted-foreground">Signing secret</p>
           <div className="flex flex-wrap items-center gap-2">
-            <code className="min-w-0 flex-1 rounded-md bg-muted px-3 py-2 font-mono text-xs break-all">{webhook.signing_secret}</code>
+            <code className="min-w-0 flex-1 rounded-lg bg-white/50 px-3 py-2 font-mono text-xs break-all ring-1 ring-(--glass-border) ring-inset dark:bg-white/[0.05]">{webhook.signing_secret}</code>
             <CopyButton value={webhook.signing_secret} label="Copy secret" />
           </div>
         </div>
@@ -387,7 +387,7 @@ export function ConnectionForm({ entry, companies, entities }: { entry: CatalogE
       ) : null}
 
       {formError ? (
-        <div role="alert" className="flex items-start gap-2.5 rounded-lg bg-destructive/6 px-3.5 py-3 text-sm ring-1 ring-destructive/25">
+        <div role="alert" className="flex items-start gap-2.5 rounded-xl bg-destructive/6 px-3.5 py-3 text-sm ring-1 ring-destructive/25">
           <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
           <span>{formError}</span>
         </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  BotIcon,
   ChevronDownIcon,
   CircleCheckIcon,
   CircleHelpIcon,
@@ -11,8 +10,10 @@ import {
   TriangleAlertIcon,
   WrenchIcon,
 } from "lucide-react";
+import { motion, useReducedMotion, type Variants } from "motion/react";
 import { useId, useState } from "react";
 
+import { CutMarks, MintMark, Seal } from "@/components/art/ornaments";
 import { StatusBadge, type Tone } from "@/components/app/badges";
 import { JsonPreview } from "@/components/app/json-preview";
 import { NoteList } from "@/components/app/page";
@@ -23,6 +24,27 @@ import { formatDate, formatDateTime, formatNumber, humanize } from "@/lib/app/fo
 import { cn } from "@/lib/utils";
 
 import { Markdown } from "./markdown";
+
+/** Suggested questions: glass chips with press feedback (the Button itself carries the press scale). */
+export const CHIP_CLASS =
+  "h-auto min-h-7 max-w-full shrink rounded-md bg-sheet py-1 text-left whitespace-normal hover:bg-paper";
+
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
+
+/** Nested surface inside the glass answer bubble: a light wash and a hairline, never a second glass layer. */
+const INSET = "rounded-lg border border-(--glass-border) bg-paper/55";
+
+const FIGURES: Variants = { hidden: {}, shown: { transition: { staggerChildren: 0.05, delayChildren: 0.12 } } };
+const FIGURE: Variants = {
+  hidden: { opacity: 0, y: 10, filter: "blur(6px)" },
+  shown: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transitionEnd: { filter: "none" },
+    transition: { y: { type: "spring", bounce: 0, visualDuration: 0.5 }, opacity: { duration: 0.35, ease: EASE_OUT }, filter: { duration: 0.4, ease: EASE_OUT } },
+  },
+};
 
 const CONFIDENCE: Record<string, { tone: Tone; label: string }> = {
   high: { tone: "good", label: "High confidence" },
@@ -70,29 +92,45 @@ function ToolCalls({
   setOpen: (open: boolean) => void;
 }) {
   const listId = useId();
+  const still = useReducedMotion();
   if (!calls.length) return null;
   return (
-    <div className="rounded-lg ring-1 ring-foreground/10">
+    <div className={INSET}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-controls={listId}
-        className="flex w-full items-center justify-between gap-3 rounded-lg px-3.5 py-2.5 text-left text-[0.8125rem] font-medium outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="press flex w-full items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-left text-[0.8125rem] font-medium outline-none hover:bg-white/50 focus-visible:ring-3 focus-visible:ring-ring/50 dark:hover:bg-white/[0.04]"
       >
         <span className="flex items-center gap-2">
           <WrenchIcon className="size-4 text-muted-foreground" aria-hidden />
           {calls.length} tool call{calls.length === 1 ? "" : "s"} behind this answer
         </span>
-        <ChevronDownIcon className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")} aria-hidden />
+        <ChevronDownIcon
+          className={cn("size-4 text-muted-foreground transition-transform duration-300 ease-(--ease-out)", open && "rotate-180")}
+          aria-hidden
+        />
       </button>
       {open ? (
-        <ul id={listId} className="divide-y border-t">
+        <motion.ul
+          id={listId}
+          data-reveal=""
+          className="divide-y divide-(--glass-border) border-t border-(--glass-border)"
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={still ? { duration: 0 } : { duration: 0.28, ease: EASE_OUT }}
+        >
           {calls.map((call) => (
-            <li key={call.ref} id={toolAnchor(messageId, call.ref)} tabIndex={-1} className="scroll-mt-24 space-y-2 px-3.5 py-3 outline-none focus-visible:bg-muted/40">
+            <li
+              key={call.ref}
+              id={toolAnchor(messageId, call.ref)}
+              tabIndex={-1}
+              className="scroll-mt-24 space-y-2 px-3.5 py-3 transition-colors duration-200 outline-none hover:bg-white/35 focus-visible:bg-primary/[0.05] dark:hover:bg-white/[0.03]"
+            >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="flex flex-wrap items-center gap-2 text-[0.8125rem]">
-                  <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{call.ref}</code>
+                  <code className="rounded-md bg-foreground/[0.06] px-1.5 py-0.5 font-mono text-xs">{call.ref}</code>
                   <span className="font-medium">{humanize(call.name)}</span>
                   <span className="font-mono text-xs text-muted-foreground">{call.name}</span>
                 </p>
@@ -117,7 +155,7 @@ function ToolCalls({
               </div>
             </li>
           ))}
-        </ul>
+        </motion.ul>
       ) : null}
     </div>
   );
@@ -129,7 +167,7 @@ function SourceRef({ refName, onReveal, className }: { refName: string; onReveal
       type="button"
       onClick={() => onReveal(refName)}
       className={cn(
-        "rounded font-mono text-xs outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50",
+        "press rounded-md font-mono text-xs outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50",
         className,
       )}
       title="Show the tool call this comes from"
@@ -142,11 +180,23 @@ function SourceRef({ refName, onReveal, className }: { refName: string; onReveal
 function KeyFigures({ figures, onReveal }: { figures: KeyFigure[]; onReveal: (ref: string) => void }) {
   if (!figures.length) return null;
   return (
-    <ul className="grid gap-px overflow-hidden rounded-lg bg-border ring-1 ring-foreground/10 sm:grid-cols-2 xl:grid-cols-3" aria-label="Key figures">
+    <motion.ul
+      className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3"
+      aria-label="Key figures"
+      variants={FIGURES}
+      initial="hidden"
+      whileInView="shown"
+      viewport={{ once: true, margin: "0px 0px -12% 0px" }}
+    >
       {figures.map((f, i) => (
-        <li key={`${f.label}-${i}`} className="bg-card px-3.5 py-3">
+        <motion.li
+          key={`${f.label}-${i}`}
+          data-reveal=""
+          variants={FIGURE}
+          className={cn(INSET, "px-3.5 py-3 shadow-[inset_0_1px_0_var(--glass-edge)] transition-colors duration-200 hover:bg-white/65 dark:hover:bg-white/[0.07]")}
+        >
           <p className="text-xs text-muted-foreground">{f.label}</p>
-          <p className="mt-0.5 text-lg leading-tight font-semibold">{f.display}</p>
+          <p className="numeral mt-1 text-[1.5rem] leading-tight font-semibold">{f.display}</p>
           <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
             {f.verified === false ? (
               <span className="inline-flex items-center gap-1 text-[color-mix(in_oklch,var(--warning),var(--foreground)_45%)]">
@@ -161,9 +211,9 @@ function KeyFigures({ figures, onReveal }: { figures: KeyFigure[]; onReveal: (re
             )}
             {f.source_ref ? <SourceRef refName={f.source_ref} onReveal={onReveal} className="text-muted-foreground hover:text-foreground" /> : null}
           </p>
-        </li>
+        </motion.li>
       ))}
-    </ul>
+    </motion.ul>
   );
 }
 
@@ -175,19 +225,23 @@ function VerificationLine({ answer }: { answer: AdvisorAnswer }) {
   const figures = v.unverified_key_figures ?? [];
   if (v.all_numbers_traced && !figures.length) {
     return (
-      <p className="flex items-start gap-2 rounded-lg bg-success/8 px-3.5 py-2.5 text-[0.8125rem] ring-1 ring-success/25" title={v.method}>
-        <ShieldCheckIcon className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
-        <span>
-          <strong className="font-semibold">
-            Numbers traced: {formatNumber(traced)}/{formatNumber(v.checked_numbers)}
-          </strong>{" "}
-          to tool outputs. {v.method}
-        </span>
-      </p>
+      <div className="flex items-center gap-4 rounded-lg border-l-2 border-verdigris/70 bg-verdigris/[0.06] py-2.5 pr-3 pl-3.5 text-[0.8125rem]" title={v.method}>
+        <p className="flex min-w-0 flex-1 items-start gap-2">
+          <ShieldCheckIcon className="mt-0.5 size-4 shrink-0 text-verdigris" aria-hidden />
+          <span>
+            <strong className="font-semibold">Verified figures.</strong>{" "}
+            <strong className="font-semibold">
+              Numbers traced: {formatNumber(traced)}/{formatNumber(v.checked_numbers)}
+            </strong>{" "}
+            to tool outputs. {v.method}
+          </span>
+        </p>
+        <Seal text="Verified figures" mark="advisor" tone="verdigris" rotate={-9} className="-my-3 size-[4.25rem] shrink-0" />
+      </div>
     );
   }
   return (
-    <div className="flex items-start gap-2 rounded-lg bg-warning/12 px-3.5 py-2.5 text-[0.8125rem] ring-1 ring-warning/30" role="note">
+    <div className="flex items-start gap-2 rounded-xl bg-warning/12 px-3.5 py-2.5 text-[0.8125rem] shadow-[inset_0_1px_0_var(--glass-edge)] ring-1 ring-warning/30" role="note">
       <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
       <div className="min-w-0 space-y-1">
         <p>
@@ -227,12 +281,11 @@ export function AssistantAnswer({ message, onFollowUp, busy }: { message: Adviso
     }, 60);
   };
   return (
-    <article className="rounded-xl bg-card ring-1 ring-foreground/10" aria-label="Advisor answer">
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 sm:px-5">
+    <article className="relative rounded-xl rounded-tl-sm glass text-card-foreground" aria-label="Advisor answer">
+      <CutMarks />
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-(--glass-border) px-4 py-3 sm:px-5">
         <p className="flex items-center gap-2 text-[0.8125rem] font-medium">
-          <span className="grid size-6 place-items-center rounded-md bg-navy-950 text-white">
-            <BotIcon className="size-3.5" aria-hidden />
-          </span>
+          <MintMark name="advisor" className="size-7 shrink-0" />
           AUREX Advisor
           <span className="font-normal text-muted-foreground">
             {answer?.mode === "llm" ? (answer.model ?? "Language model") : "Deterministic analysis"} · {formatDateTime(message.created_at)}
@@ -250,7 +303,7 @@ export function AssistantAnswer({ message, onFollowUp, busy }: { message: Adviso
       <div className="space-y-4 px-4 py-4 sm:px-5">
         <Markdown text={message.content || answer?.answer || ""} />
         {denied.length ? (
-          <p className="flex items-start gap-2 rounded-lg bg-muted/70 px-3.5 py-2.5 text-[0.8125rem]">
+          <p className={cn(INSET, "flex items-start gap-2 px-3.5 py-2.5 text-[0.8125rem]")}>
             <LockIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
             <span>
               {denied.length === 1 ? "One analysis was" : `${denied.length} analyses were`} not run because your role lacks the permission:{" "}
@@ -268,7 +321,11 @@ export function AssistantAnswer({ message, onFollowUp, busy }: { message: Adviso
                   <ul className="space-y-1 text-[0.8125rem]">
                     {answer.evidence.map((e, i) => (
                       <li key={i} className="flex gap-2">
-                        <SourceRef refName={e.source_ref} onReveal={reveal} className="h-fit shrink-0 bg-muted px-1.5 py-0.5 hover:bg-brand-50" />
+                        <SourceRef
+                          refName={e.source_ref}
+                          onReveal={reveal}
+                          className="h-fit shrink-0 bg-foreground/[0.06] px-1.5 py-0.5 hover:bg-brand-50 dark:hover:bg-brand-800/30"
+                        />
                         <span>{e.summary}</span>
                       </li>
                     ))}
@@ -306,7 +363,7 @@ export function AssistantAnswer({ message, onFollowUp, busy }: { message: Adviso
             <p className="text-xs font-semibold text-muted-foreground">Ask next</p>
             <div className="flex flex-wrap gap-2">
               {answer.follow_up_questions.map((q) => (
-                <Button key={q} variant="outline" size="sm" className="h-auto min-h-7 py-1 text-left whitespace-normal max-w-full shrink" onClick={() => onFollowUp(q)} disabled={busy}>
+                <Button key={q} variant="outline" size="sm" className={CHIP_CLASS} onClick={() => onFollowUp(q)} disabled={busy}>
                   {q}
                 </Button>
               ))}

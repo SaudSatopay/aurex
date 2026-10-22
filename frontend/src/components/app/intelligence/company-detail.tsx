@@ -1,9 +1,11 @@
 "use client";
 
 import { ArrowLeftIcon, CircleAlertIcon, GlobeIcon, NewspaperIcon } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { MintMark } from "@/components/art/ornaments";
 import { PermissionGate } from "@/components/app/access";
 import { StatusBadge } from "@/components/app/badges";
 import { SERIES_COLORS } from "@/components/app/charts/palette";
@@ -13,6 +15,7 @@ import { DefinitionButton } from "@/components/app/kpi";
 import { DetailList, NoteList, PageHeader, Panel, SectionHeading } from "@/components/app/page";
 import { EmptyState, Notice, SkeletonBlock, TableSkeleton } from "@/components/app/states";
 import { ExternalLink, QueryError } from "@/components/app/decision-lab/common";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 import { useOrgQuery } from "@/hooks/use-org-query";
 import { formatDate, formatNumber, formatPercent, formatRatio, MISSING } from "@/lib/app/format";
@@ -154,6 +157,7 @@ export function CompanyDetailView({ companyKey }: { companyKey: string }) {
     return keys.sort((a, b) => (METRIC_ORDER.indexOf(a) === -1 ? 99 : METRIC_ORDER.indexOf(a)) - (METRIC_ORDER.indexOf(b) === -1 ? 99 : METRIC_ORDER.indexOf(b)));
   }, [data]);
   const selected = metric && metrics.includes(metric) ? metric : (metrics[0] ?? null);
+  const still = useReducedMotion();
 
   if (query.isPending) {
     return (
@@ -161,8 +165,8 @@ export function CompanyDetailView({ companyKey }: { companyKey: string }) {
         <SkeletonBlock className="h-10 w-80" />
         <SkeletonBlock className="h-4 w-full max-w-xl" />
         <div className="grid gap-6 lg:grid-cols-2">
-          <SkeletonBlock className="h-48" />
-          <SkeletonBlock className="h-48" />
+          <SkeletonBlock className="h-48 rounded-2xl" />
+          <SkeletonBlock className="h-48 rounded-2xl" />
         </div>
         <TableSkeleton rows={6} columns={5} />
       </div>
@@ -181,8 +185,11 @@ export function CompanyDetailView({ companyKey }: { companyKey: string }) {
 
   return (
     <>
-      <Link href="/app/intelligence" className="mb-3 inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50">
-        <ArrowLeftIcon className="size-4" aria-hidden />
+      <Link
+        href="/app/intelligence"
+        className="press group/back mb-3 inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <ArrowLeftIcon className="size-4 transition-transform duration-300 ease-(--ease-out) group-hover/back:-translate-x-0.5" aria-hidden />
         Company Intelligence
       </Link>
       <PageHeader
@@ -190,6 +197,7 @@ export function CompanyDetailView({ companyKey }: { companyKey: string }) {
         description={data.description ?? undefined}
         meta={
           <>
+            <MintMark name={`company:${data.key}`} className="size-8 shrink-0" />
             <ListingBadge company={data} />
             {data.custom ? <StatusBadge tone="info">Tracked by your team</StatusBadge> : null}
             {data.legal_name ? <span>{data.legal_name}</span> : null}
@@ -213,7 +221,8 @@ export function CompanyDetailView({ companyKey }: { companyKey: string }) {
       />
 
       <div className="space-y-6">
-        <div className="grid gap-6 lg:grid-cols-2">
+        <RevealGroup className="grid gap-6 lg:grid-cols-2" stagger={0.05}>
+          <RevealItem y={12} className="flex min-w-0 flex-col *:flex-1">
           <Panel title="Profile">
             <DetailList
               items={[
@@ -226,6 +235,8 @@ export function CompanyDetailView({ companyKey }: { companyKey: string }) {
               ]}
             />
           </Panel>
+          </RevealItem>
+          <RevealItem y={12} className="flex min-w-0 flex-col *:flex-1">
           <Panel title="Share price" description="Dated snapshots with their source; never estimated">
             <div className="space-y-3">
               <MarketSnapshotBlock company={data} marketData={data.market_data} />
@@ -249,7 +260,8 @@ export function CompanyDetailView({ companyKey }: { companyKey: string }) {
               ) : null}
             </div>
           </Panel>
-        </div>
+          </RevealItem>
+        </RevealGroup>
 
         {data.measures_note ? <Notice title="Different measures, shown separately">{data.measures_note}</Notice> : null}
 
@@ -268,10 +280,21 @@ export function CompanyDetailView({ companyKey }: { companyKey: string }) {
                       size="sm"
                       aria-current={m === selected ? "true" : undefined}
                       onClick={() => setMetric(m)}
-                      className={cn("w-full justify-between font-normal", m === selected && "bg-muted font-medium text-foreground")}
+                      className={cn(
+                        "relative w-full justify-between font-normal hover:bg-white/50 dark:hover:bg-white/[0.05]",
+                        m === selected && "font-medium text-foreground hover:bg-transparent dark:hover:bg-transparent",
+                      )}
                     >
-                      <span className="truncate">{metricLabel(m)}</span>
-                      <span className="text-xs text-muted-foreground tabular">{data.financials[m].length}</span>
+                      {m === selected ? (
+                        <motion.span
+                          layoutId="intelligence-metric-pill"
+                          aria-hidden
+                          className="absolute inset-0 rounded-[inherit] bg-white/75 shadow-[inset_0_1px_0_var(--glass-edge),0_0_0_1px_var(--glass-border),0_6px_16px_-10px_oklch(0.19_0.05_263/0.3)] dark:bg-white/[0.09]"
+                          transition={still ? { duration: 0 } : { type: "spring", bounce: 0, visualDuration: 0.38 }}
+                        />
+                      ) : null}
+                      <span className="relative truncate">{metricLabel(m)}</span>
+                      <span className="relative text-xs text-muted-foreground tabular">{data.financials[m].length}</span>
                     </Button>
                   </li>
                 ))}
@@ -294,12 +317,12 @@ export function CompanyDetailView({ companyKey }: { companyKey: string }) {
         <div className="grid gap-6 lg:grid-cols-2">
           <Panel title="Market share estimates" description="Third-party research; market definitions differ between sources">
             {data.market_share_estimates.length ? (
-              <ul className="divide-y">
+              <ul className="divide-y divide-(--glass-border)">
                 {data.market_share_estimates.map((m, i) => (
                   <li key={i} className="space-y-1 py-3 first:pt-0 last:pb-0">
                     <p className="flex flex-wrap items-baseline justify-between gap-2">
                       <span className="text-[0.8125rem] font-medium">{m.scope}</span>
-                      <span className="text-lg font-semibold tabular">{m.value_pct !== null ? `${formatNumber(m.value_pct, { decimals: 1 })}%` : MISSING}</span>
+                      <span className="numeral text-[1.375rem] leading-none font-semibold">{m.value_pct !== null ? `${formatNumber(m.value_pct, { decimals: 1 })}%` : MISSING}</span>
                     </p>
                     <p className="text-xs text-muted-foreground">As of {m.as_of ?? "date not stated"}</p>
                     {m.notes ? <p className="text-xs text-muted-foreground">{m.notes}</p> : null}
@@ -340,9 +363,12 @@ export function CompanyDetailView({ companyKey }: { companyKey: string }) {
           }
         >
           {data.news.length ? (
-            <ul className="divide-y">
+            <ul className="-mx-2 divide-y divide-(--glass-border)">
               {data.news.map((a) => (
-                <li key={a.id} className="flex flex-wrap items-start justify-between gap-2 py-2.5 first:pt-0 last:pb-0">
+                <li
+                  key={a.id}
+                  className="flex flex-wrap items-start justify-between gap-2 rounded-lg px-2 py-2.5 transition-colors duration-200 hover:bg-white/45 dark:hover:bg-white/[0.04]"
+                >
                   <div className="min-w-0">
                     <ExternalLink href={a.url} className="text-[0.8125rem]">
                       {a.title}

@@ -1,9 +1,10 @@
 "use client";
 
-import { FlaskRoundIcon, MenuIcon, XIcon } from "lucide-react";
+import { MenuIcon, XIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
+import { Watermark } from "@/components/art/ornaments";
 import { AurexLogo } from "@/components/brand/logo";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useFilterOptions } from "@/hooks/use-filter-options";
@@ -85,12 +86,17 @@ function SyntheticBanner() {
   const company = options.data?.companies.find((c) => c.id === (companyId ?? options.data?.company_id));
   if (!membership?.is_demo && !company?.is_synthetic) return null;
   return (
-    <div className="border-b border-brand-200/70 bg-brand-50 text-navy-800 dark:border-white/10 dark:bg-navy-900 dark:text-navy-100">
-      <p className="flex items-start gap-2 px-4 py-2 text-[0.8125rem] leading-snug sm:items-center sm:px-6 lg:px-8">
-        <FlaskRoundIcon className="mt-px size-4 shrink-0 text-brand-600 sm:mt-0 dark:text-sky-accent" aria-hidden />
+    <div className="relative z-[1] border-b border-oxblood/15 bg-sheet/80 text-ink backdrop-blur-xl">
+      <p className="flex items-start gap-3 px-4 py-2 text-[0.8125rem] leading-snug sm:items-center sm:px-6 lg:px-8">
+        <span
+          aria-hidden
+          className="mt-px shrink-0 -rotate-3 rounded-[3px] border border-oxblood/50 px-1.5 py-px font-display text-[0.6875rem] font-semibold tracking-[0.22em] text-oxblood sm:mt-0"
+        >
+          SPECIMEN
+        </span>
         <span>
           <strong className="font-semibold">Synthetic demonstration data — fictional company NovaMart.</strong>{" "}
-          <span className="text-navy-600 dark:text-navy-300">No figure here describes a real business.</span>
+          <span className="text-muted-foreground">No figure here describes a real business.</span>
         </span>
       </p>
     </div>
@@ -105,7 +111,7 @@ function TopBar() {
   const showFilters = hasMembership && routeUsesFilters(pathname);
   return (
     <>
-      <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/85">
+      <header className="sticky top-0 z-30 border-b border-(--glass-border) bg-(--glass-bg) shadow-[inset_0_-1px_0_var(--glass-edge)] backdrop-blur-2xl backdrop-saturate-150">
         <div className="flex h-14 items-center gap-3 px-4 sm:px-6 lg:px-8">
           <MobileNav filterQuery={filterQueryString} />
           <div className="min-w-0 flex-1">
@@ -117,7 +123,7 @@ function TopBar() {
           </div>
         </div>
         {showFilters ? (
-          <div className="border-t bg-muted/40 px-4 py-2 sm:px-6 lg:px-8">
+          <div className="border-t border-(--glass-border) bg-white/25 px-4 py-2 sm:px-6 lg:px-8 dark:bg-white/[0.03]">
             <FilterBar />
           </div>
         ) : null}
@@ -146,12 +152,15 @@ function DesktopSidebar() {
  */
 export function AppFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-dvh flex-1">
+    <div className="relative flex min-h-dvh flex-1">
+      <div aria-hidden className="aurora-canvas">
+        <Watermark />
+      </div>
       <SkipLink />
       <SessionIsland fallback={<SidebarSkeleton />}>
         <DesktopSidebar />
       </SessionIsland>
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative z-[1] flex min-w-0 flex-1 flex-col">
         <SessionIsland fallback={<TopBarSkeleton />}>
           <TopBar />
         </SessionIsland>

@@ -4,6 +4,7 @@ import { ChevronsUpDownIcon, FlaskRoundIcon, HeartPulseIcon, ScaleIcon } from "l
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useId, useLayoutEffect, useState } from "react";
 
+import { MintMark } from "@/components/art/ornaments";
 import { StatusBadge, type Tone } from "@/components/app/badges";
 import { Meter } from "@/components/app/charts/sparkline";
 import { DataTable, type Column } from "@/components/app/data-table";
@@ -11,6 +12,9 @@ import { NoteList, PageHeader, Panel, SectionHeading } from "@/components/app/pa
 import { useSession } from "@/components/app/session-provider";
 import { EmptyState, Notice, SkeletonBlock, TableSkeleton } from "@/components/app/states";
 import { QueryError } from "@/components/app/decision-lab/common";
+import { NumberTicker } from "@/components/kit/number-ticker";
+import { SpotlightCard } from "@/components/kit/spotlight-card";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -82,13 +86,13 @@ function CompanyPicker({
       }}
     >
       <PopoverTrigger asChild>
-        <Button variant="outline" className="min-w-44 justify-between bg-background font-normal" aria-label={`Peer companies: ${label}`}>
+        <Button variant="outline" className="min-w-44 justify-between font-normal" aria-label={`Peer companies: ${label}`}>
           <span className="truncate">{label}</span>
           <ChevronsUpDownIcon className="text-muted-foreground" aria-hidden />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-72 gap-0 p-0">
-        <div className="border-b px-3 py-2.5">
+        <div className="border-b border-(--glass-border) px-3 py-2.5">
           <p className="text-sm font-medium">Peer companies</p>
           <p className="text-xs text-muted-foreground">Leave all unchecked to compare every profile.</p>
         </div>
@@ -97,7 +101,7 @@ function CompanyPicker({
             const id = `${listId}-${c.key}`;
             return (
               <li key={c.key}>
-                <label htmlFor={id} className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
+                <label htmlFor={id} className="press flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors duration-200 hover:bg-foreground/[0.05] dark:hover:bg-white/[0.06]">
                   <Checkbox id={id} checked={draft.includes(c.key)} onCheckedChange={(v) => setDraft((d) => (v === true ? [...d, c.key] : d.filter((k) => k !== c.key)))} />
                   {c.name}
                 </label>
@@ -105,7 +109,7 @@ function CompanyPicker({
             );
           })}
         </ul>
-        <div className="flex justify-between gap-2 border-t px-3 py-2">
+        <div className="flex justify-between gap-2 border-t border-(--glass-border) px-3 py-2">
           <Button variant="ghost" size="sm" onClick={() => setDraft([])} disabled={!draft.length}>
             Clear
           </Button>
@@ -128,52 +132,59 @@ function HealthCard({ row, method }: { row: BenchmarkRow; method: string }) {
   const h = row.health;
   const grade = h?.grade ? (GRADES[h.grade] ?? { tone: "neutral" as Tone, label: humanize(h.grade) }) : null;
   return (
-    <article className="rounded-xl bg-card ring-1 ring-foreground/10" aria-label={`Health score of ${name(row)}`}>
-      <header className="flex flex-wrap items-start justify-between gap-2 border-b px-4 py-3">
-        <div className="min-w-0">
-          <p className="truncate font-heading text-sm font-semibold">{name(row)}</p>
-          <div className="mt-1 flex flex-wrap gap-1.5">
-            <CompanyBadges row={row} />
+    <SpotlightCard className="h-full rounded-2xl">
+      <article className="h-full rounded-2xl glass" aria-label={`Health score of ${name(row)}`}>
+        <header className="flex items-start justify-between gap-3 border-b border-(--glass-border) px-4 py-3">
+          <div className="flex min-w-0 items-start gap-2.5">
+            <MintMark name={`company:${row.key}`} tone={row.own ? "gold" : "ink"} className="mt-0.5 size-9 shrink-0" />
+            <div className="min-w-0">
+              <p className="truncate font-display text-[1.0625rem] leading-snug font-semibold tracking-[-0.01em]">{name(row)}</p>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                <CompanyBadges row={row} />
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="text-right">
-          <p className="text-2xl leading-none font-semibold">{h?.score !== null && h?.score !== undefined ? formatScore(h.score) : MISSING}</p>
-          {grade ? (
-            <StatusBadge tone={grade.tone} className="mt-1">
-              {grade.label}
-            </StatusBadge>
+          <div className="shrink-0 text-right">
+            <p className="numeral text-[2.25rem] leading-none font-semibold">
+              {h?.score !== null && h?.score !== undefined ? <NumberTicker value={h.score} format={formatScore} /> : MISSING}
+            </p>
+            {grade ? (
+              <StatusBadge tone={grade.tone} className="mt-1">
+                {grade.label}
+              </StatusBadge>
+            ) : null}
+          </div>
+        </header>
+        <div className="space-y-3 px-4 py-3">
+          {h?.components.length ? (
+            <ul className="space-y-2.5">
+              {h.components.map((c) => (
+                <li key={c.key}>
+                  <div className="flex items-baseline justify-between gap-2 text-[0.8125rem]">
+                    <span className="font-medium">{humanize(c.key)}</span>
+                    <span className="tabular">
+                      {formatScore(c.score)} <span className="text-xs text-muted-foreground">/ 100</span>
+                    </span>
+                  </div>
+                  <Meter value={c.score} label={`${humanize(c.key)} score`} className="mt-1" />
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {c.raw_label} {c.raw_label.includes("x/yr") ? formatRatio(c.raw) : c.raw_label.includes("growth") || c.raw_label.includes("margin") || c.raw_label.includes("coverage") ? formatPercent(c.raw) : formatNumber(c.raw, { decimals: 2 })} · weight{" "}
+                    {formatPercent(c.effective_weight, { decimals: 0 })}
+                    {Math.abs(c.effective_weight - c.weight) > 0.001 ? ` (normally ${formatPercent(c.weight, { decimals: 0 })})` : ""}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">No component could be scored.</p>
+          )}
+          {h?.excluded_components?.length ? (
+            <p className="text-xs text-muted-foreground">Excluded for lack of data: {h.excluded_components.map((c) => humanize(c)).join(", ")}.</p>
           ) : null}
+          <p className="text-xs text-muted-foreground">{method}</p>
         </div>
-      </header>
-      <div className="space-y-3 px-4 py-3">
-        {h?.components.length ? (
-          <ul className="space-y-2.5">
-            {h.components.map((c) => (
-              <li key={c.key}>
-                <div className="flex items-baseline justify-between gap-2 text-[0.8125rem]">
-                  <span className="font-medium">{humanize(c.key)}</span>
-                  <span className="tabular">
-                    {formatScore(c.score)} <span className="text-xs text-muted-foreground">/ 100</span>
-                  </span>
-                </div>
-                <Meter value={c.score} label={`${humanize(c.key)} score`} className="mt-1" />
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {c.raw_label} {c.raw_label.includes("x/yr") ? formatRatio(c.raw) : c.raw_label.includes("growth") || c.raw_label.includes("margin") || c.raw_label.includes("coverage") ? formatPercent(c.raw) : formatNumber(c.raw, { decimals: 2 })} · weight{" "}
-                  {formatPercent(c.effective_weight, { decimals: 0 })}
-                  {Math.abs(c.effective_weight - c.weight) > 0.001 ? ` (normally ${formatPercent(c.weight, { decimals: 0 })})` : ""}
-                </p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-muted-foreground">No component could be scored.</p>
-        )}
-        {h?.excluded_components?.length ? (
-          <p className="text-xs text-muted-foreground">Excluded for lack of data: {h.excluded_components.map((c) => humanize(c)).join(", ")}.</p>
-        ) : null}
-        <p className="text-xs text-muted-foreground">{method}</p>
-      </div>
-    </article>
+      </article>
+    </SpotlightCard>
   );
 }
 
@@ -215,10 +226,13 @@ export function BenchmarkingView() {
       header: "Company",
       sticky: true,
       cell: (r) => (
-        <div className="min-w-[11rem]">
-          <p className="font-medium">{name(r)}</p>
-          <div className="mt-0.5 flex flex-wrap gap-1">
-            <CompanyBadges row={r} />
+        <div className="flex min-w-[11rem] items-start gap-2">
+          <MintMark name={`company:${r.key}`} tone={r.own ? "gold" : "ink"} className="mt-0.5 size-6 shrink-0" />
+          <div className="min-w-0">
+            <p className="font-medium">{name(r)}</p>
+            <div className="mt-0.5 flex flex-wrap gap-1">
+              <CompanyBadges row={r} />
+            </div>
           </div>
         </div>
       ),
@@ -285,7 +299,7 @@ export function BenchmarkingView() {
           <QueryError error={query.error} onRetry={() => void query.refetch()} />
         </Panel>
       ) : (
-        <div className={query.isPlaceholderData ? "space-y-6 opacity-55 transition-opacity" : "space-y-6 transition-opacity"}>
+        <div className={query.isPlaceholderData ? "space-y-6 opacity-55 transition-opacity duration-200" : "space-y-6 transition-opacity duration-200"}>
           <Notice tone="warning" title="Comparability notes">
             <NoteList notes={data.comparability_notes} />
             {data.fiscal_year_end_months.length > 1 ? (
@@ -300,51 +314,55 @@ export function BenchmarkingView() {
           ) : (
             <>
               <Panel title="Comparison" description="Latest complete fiscal year of each company" contentClassName="pt-3">
-                <DataTable caption="Benchmark comparison" columns={columns} rows={rows} rowKey={(r) => r.key} dense rowClassName={(r) => (r.own ? "bg-brand-50/50 dark:bg-brand-800/15" : undefined)} />
+                <DataTable caption="Benchmark comparison" columns={columns} rows={rows} rowKey={(r) => r.key} dense rowClassName={(r) => (r.own ? "bg-primary/[0.06] dark:bg-primary/[0.1]" : undefined)} />
               </Panel>
 
               <SectionHeading title="Ratios side by side" description="Unit-free measures, so companies of any size and currency can be compared" />
-              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              <RevealGroup className="grid gap-6 md:grid-cols-2 xl:grid-cols-3" stagger={0.05}>
                 {RATIO_METRICS.map((m) => (
-                  <Panel key={String(m.key)} title={m.label} description={m.description}>
-                    <SignedBarList
-                      label={`${m.label} by company`}
-                      items={[...rows]
-                        .sort((a, b) => ((b[m.key] as number | null) ?? -Infinity) - ((a[m.key] as number | null) ?? -Infinity))
-                        .map((r) => ({
-                          key: r.key,
-                          label: name(r),
-                          sublabel: `${r.fiscal_year ?? "Year not stated"}${r.is_synthetic ? " · synthetic" : ""}`,
-                          value: r[m.key] as number | null,
-                          display: m.format(r[m.key] as number | null),
-                          highlight: r.own,
-                        }))}
-                    />
-                  </Panel>
+                  <RevealItem key={String(m.key)} y={12} className="flex min-w-0 flex-col">
+                    <Panel title={m.label} description={m.description} className="flex-1">
+                      <SignedBarList
+                        label={`${m.label} by company`}
+                        items={[...rows]
+                          .sort((a, b) => ((b[m.key] as number | null) ?? -Infinity) - ((a[m.key] as number | null) ?? -Infinity))
+                          .map((r) => ({
+                            key: r.key,
+                            label: name(r),
+                            sublabel: `${r.fiscal_year ?? "Year not stated"}${r.is_synthetic ? " · synthetic" : ""}`,
+                            value: r[m.key] as number | null,
+                            display: m.format(r[m.key] as number | null),
+                            highlight: r.own,
+                          }))}
+                      />
+                    </Panel>
+                  </RevealItem>
                 ))}
-              </div>
+              </RevealGroup>
 
               <SectionHeading title="Scale" description="Absolute revenue is compared only within the same reporting currency; amounts are never converted" />
-              <div className="grid gap-6 md:grid-cols-2">
+              <RevealGroup className="grid gap-6 md:grid-cols-2" stagger={0.05}>
                 {currencies.map((currency) => {
                   const group = rows.filter((r) => r.currency === currency).sort((a, b) => (b.revenue ?? -Infinity) - (a.revenue ?? -Infinity));
                   return (
-                    <Panel key={currency} title={`Revenue in ${currency}`} description={group.length === 1 ? "Only one company reports in this currency" : `${group.length} companies reporting in ${currency}`}>
-                      <SignedBarList
-                        label={`Revenue in ${currency}`}
-                        items={group.map((r) => ({
-                          key: r.key,
-                          label: name(r),
-                          sublabel: `${r.fiscal_year ?? ""}${r.store_count ? ` · ${formatNumber(r.store_count, { decimals: 0 })} stores` : ""}`,
-                          value: r.revenue,
-                          display: formatMoney(r.revenue, currency, { compact: true }),
-                          highlight: r.own,
-                        }))}
-                      />
-                    </Panel>
+                    <RevealItem key={currency} y={12} className="flex min-w-0 flex-col">
+                      <Panel className="flex-1" title={`Revenue in ${currency}`} description={group.length === 1 ? "Only one company reports in this currency" : `${group.length} companies reporting in ${currency}`}>
+                        <SignedBarList
+                          label={`Revenue in ${currency}`}
+                          items={group.map((r) => ({
+                            key: r.key,
+                            label: name(r),
+                            sublabel: `${r.fiscal_year ?? ""}${r.store_count ? ` · ${formatNumber(r.store_count, { decimals: 0 })} stores` : ""}`,
+                            value: r.revenue,
+                            display: formatMoney(r.revenue, currency, { compact: true }),
+                            highlight: r.own,
+                          }))}
+                        />
+                      </Panel>
+                    </RevealItem>
                   );
                 })}
-              </div>
+              </RevealGroup>
 
               <SectionHeading
                 title="Business health"
@@ -356,11 +374,13 @@ export function BenchmarkingView() {
                   </span>
                 }
               />
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <RevealGroup className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" stagger={0.05}>
                 {rows.map((r) => (
-                  <HealthCard key={r.key} row={r} method={data.health_score_method} />
+                  <RevealItem key={r.key} y={12} className="min-w-0">
+                    <HealthCard row={r} method={data.health_score_method} />
+                  </RevealItem>
                 ))}
-              </div>
+              </RevealGroup>
               <Notice title="Health score limitations">
                 <NoteList notes={Array.from(new Set(rows.flatMap((r) => r.health?.limitations ?? []))).filter((n) => !n.startsWith("Excluded for lack of data"))} />
               </Notice>

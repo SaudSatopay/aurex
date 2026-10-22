@@ -15,13 +15,16 @@ import { useSearchParams } from "next/navigation";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
+import { MintMark } from "@/components/art/ornaments";
 import { StatusBadge, type Tone } from "@/components/app/badges";
 import { DataTable, type Column } from "@/components/app/data-table";
 import { FormError, TextField } from "@/components/app/form";
 import { NoteList, PageHeader, Panel } from "@/components/app/page";
+import { Serial } from "@/components/app/print";
 import { useSession } from "@/components/app/session-provider";
 import { EmptyState, Notice, TableSkeleton } from "@/components/app/states";
-import { HashValue, QueryError, SyntheticBadge, toastError } from "@/components/app/decision-lab/common";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
+import { QueryError, SyntheticBadge, toastError } from "@/components/app/decision-lab/common";
 import { ScopePicker, type Scope } from "@/components/app/decision-lab/scope-picker";
 import {
   AlertDialog,
@@ -66,6 +69,11 @@ const STATUS: Record<string, { tone: Tone; label: string; icon: typeof ClockIcon
 
 const FORMAT_LABELS: Record<string, string> = { pdf: "PDF", csv: "CSV", xlsx: "Excel" };
 
+/** Each report type wears its own mint mark: on the generator's choice and on every certificate it prints. */
+function ReportMark({ type, className, tone = "ink" }: { type: string; className?: string; tone?: "ink" | "gold" }) {
+  return <MintMark name={`report:${type}`} tone={tone} className={cn("shrink-0", className)} />;
+}
+
 function ReportStatusBadge({ status }: { status: string }) {
   const info = STATUS[status] ?? { tone: "neutral" as Tone, label: humanize(status), icon: ClockIcon };
   return (
@@ -95,13 +103,13 @@ function MultiCheck({
     <fieldset className="space-y-2">
       <legend className="text-sm font-medium">{legend}</legend>
       {items.length ? (
-        <ul className="grid max-h-56 gap-1 overflow-y-auto rounded-lg bg-muted/40 p-1.5 sm:grid-cols-2">
+        <ul className="grid max-h-56 gap-1 overflow-y-auto rounded-xl border border-(--glass-border) bg-white/40 p-1.5 shadow-[inset_0_1px_0_var(--glass-edge)] sm:grid-cols-2 dark:bg-white/[0.04]">
           {items.map((item) => {
             const id = `${baseId}-${item.value}`;
             const checked = selected.includes(item.value);
             return (
               <li key={item.value}>
-                <label htmlFor={id} className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-background">
+                <label htmlFor={id} className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors duration-200 hover:bg-white/70 dark:hover:bg-white/[0.06]">
                   <Checkbox
                     id={id}
                     className="mt-0.5"
@@ -201,17 +209,22 @@ function Generator({ data, onCreated }: { data: ReportsResponse; onCreated: (rep
                   disabled={!t.allowed}
                   onClick={() => setType(t.key)}
                   className={cn(
-                    "rounded-lg px-3 py-2.5 text-left ring-1 transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed",
-                    active ? "bg-brand-50 ring-primary/60 dark:bg-brand-800/25" : "ring-foreground/12 hover:bg-muted/60",
+                    "press flex items-start gap-2.5 rounded-lg px-3 py-2.5 text-left shadow-[inset_0_1px_0_var(--glass-edge)] ring-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed",
+                    active
+                      ? "bg-gold/[0.08] shadow-[inset_0_1px_0_var(--glass-edge),0_8px_22px_-14px_color-mix(in_oklch,var(--gold-deep)_60%,transparent)] ring-gold-deep/50"
+                      : "bg-sheet ring-(--glass-border) hover:bg-paper",
                     !t.allowed && "opacity-60",
                   )}
                 >
-                  <span className="flex items-center justify-between gap-2 text-sm font-medium">
-                    {t.title}
-                    {!t.allowed ? <LockIcon className="size-3.5 text-muted-foreground" aria-hidden /> : null}
-                  </span>
-                  <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
-                    {t.allowed ? REPORT_DESCRIPTIONS[t.key] : `Needs report generation and ${PERMISSION_LABELS[t.permission] ?? t.permission}.`}
+                  <ReportMark type={t.key} tone={active ? "gold" : "ink"} className="mt-0.5 size-7" />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center justify-between gap-2 text-sm font-medium">
+                      {t.title}
+                      {!t.allowed ? <LockIcon className="size-3.5 text-muted-foreground" aria-hidden /> : null}
+                    </span>
+                    <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
+                      {t.allowed ? REPORT_DESCRIPTIONS[t.key] : `Needs report generation and ${PERMISSION_LABELS[t.permission] ?? t.permission}.`}
+                    </span>
                   </span>
                 </button>
               );
@@ -357,30 +370,30 @@ export function ReportsView() {
       key: "title",
       header: "Report",
       cell: (r) => (
-        <div className="min-w-[14rem]">
-          <p className="font-medium">{r.title}</p>
-          <p className="text-xs text-muted-foreground">
-            {data?.types.find((t) => t.key === r.report_type)?.title ?? humanize(r.report_type)} · {FORMAT_LABELS[r.format] ?? r.format}
-            {r.created_by === user.id ? " · requested by you" : ""}
-          </p>
-          {r.status === "failed" && r.error ? <p className="mt-0.5 text-xs text-destructive">{r.error}</p> : null}
+        <div className="flex min-w-[15rem] items-start gap-3 py-1">
+          <ReportMark type={r.report_type} className="mt-0.5 size-8" />
+          <div className="min-w-0 space-y-0.5">
+            <p className="font-display text-[0.9375rem] leading-snug font-semibold tracking-[-0.01em]">{r.title}</p>
+            <p className="text-xs text-muted-foreground">
+              {data?.types.find((t) => t.key === r.report_type)?.title ?? humanize(r.report_type)} · {FORMAT_LABELS[r.format] ?? r.format}
+              {r.file_size !== null ? ` · ${formatBytes(r.file_size)}` : ""}
+            </p>
+            <p className="text-xs text-muted-foreground" title={formatDateTime(r.created_at)}>
+              Requested {formatRelative(r.created_at)}
+              {r.created_by === user.id ? " by you" : ""}
+            </p>
+            {r.sha256 ? (
+              <Serial value={r.sha256} chars={12} label="SHA-256" className="flex" />
+            ) : (
+              <p className="text-xs text-muted-foreground">SHA-256 not available</p>
+            )}
+            {r.status === "failed" && r.error ? <p className="text-xs text-destructive">{r.error}</p> : null}
+          </div>
         </div>
       ),
       sortValue: (r) => r.title,
     },
     { key: "status", header: "Status", cell: (r) => <ReportStatusBadge status={r.status} />, sortValue: (r) => r.status },
-    {
-      key: "created",
-      header: "Requested",
-      cell: (r) => (
-        <span className="whitespace-nowrap" title={formatDateTime(r.created_at)}>
-          {formatRelative(r.created_at)}
-        </span>
-      ),
-      sortValue: (r) => r.created_at,
-    },
-    { key: "size", header: "Size", align: "right", cell: (r) => formatBytes(r.file_size), sortValue: (r) => r.file_size },
-    { key: "sha", header: "SHA-256", cell: (r) => (r.sha256 ? <HashValue value={r.sha256} chars={10} copy={false} /> : <span className="text-muted-foreground">Not available</span>) },
     {
       key: "actions",
       header: <span className="sr-only">Actions</span>,
@@ -422,12 +435,15 @@ export function ReportsView() {
           <QueryError error={query.error} onRetry={() => void query.refetch()} />
         </Panel>
       ) : (
-        <div className={cn("grid items-start gap-6", canGenerate && "xl:grid-cols-[minmax(0,30rem)_minmax(0,1fr)]")}>
-          {canGenerate ? (
-            <Generator data={data} onCreated={() => void query.refetch()} />
-          ) : (
-            <Notice title="View only">Your role can download reports shared with it but not generate new ones.</Notice>
-          )}
+        <RevealGroup stagger={0.06} className={cn("grid items-start gap-6", canGenerate && "xl:grid-cols-[minmax(0,30rem)_minmax(0,1fr)]")}>
+          <RevealItem y={12} className="min-w-0">
+            {canGenerate ? (
+              <Generator data={data} onCreated={() => void query.refetch()} />
+            ) : (
+              <Notice title="View only">Your role can download reports shared with it but not generate new ones.</Notice>
+            )}
+          </RevealItem>
+          <RevealItem y={12} className="min-w-0">
           <Panel
             title="Generated reports"
             description="Reports you requested, and company-wide reports your role may read"
@@ -449,13 +465,14 @@ export function ReportsView() {
                 rowKey={(r) => r.id}
                 dense
                 pageSize={15}
-                rowClassName={(r) => (r.id === highlight ? "bg-brand-50/70 dark:bg-brand-800/20" : undefined)}
+                rowClassName={(r) => (r.id === highlight ? "bg-primary/[0.07] shadow-[inset_3px_0_0_var(--primary)] dark:bg-brand-800/20" : undefined)}
               />
             ) : (
               <EmptyState compact icon={FileTextIcon} title="No reports yet" description={canGenerate ? "Generate one with the form." : "Reports generated by your colleagues appear here when your role may read them."} />
             )}
           </Panel>
-        </div>
+          </RevealItem>
+        </RevealGroup>
       )}
 
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>

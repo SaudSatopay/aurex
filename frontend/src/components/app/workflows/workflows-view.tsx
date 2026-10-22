@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardListIcon, LoaderCircleIcon, PlusIcon, SparklesIcon, StampIcon, ThumbsDownIcon, ThumbsUpIcon } from "lucide-react";
+import { ClipboardListIcon, LoaderCircleIcon, PlusIcon, ScrollTextIcon, StampIcon, ThumbsDownIcon, ThumbsUpIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { NoteList, PageHeader, Panel } from "@/components/app/page";
 import { useSession } from "@/components/app/session-provider";
 import { EmptyState, Notice, TableSkeleton } from "@/components/app/states";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { QueryError, toastError } from "@/components/app/decision-lab/common";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -44,12 +45,15 @@ function PipelineSummary({ counts, active, onSelect }: { counts: Record<string, 
       onClick={() => onSelect(status)}
       aria-pressed={active === status}
       className={cn(
-        "flex min-w-0 flex-col items-start rounded-lg px-3 py-2 text-left ring-1 transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-        active === status ? "bg-navy-950 text-white ring-navy-950" : "bg-card ring-foreground/10 hover:bg-muted/60",
+        "press relative flex min-w-0 flex-col items-start overflow-hidden rounded-lg px-3 py-2 text-left ring-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+        active === status
+          ? "bg-plate text-sidebar-foreground shadow-[inset_0_1px_0_oklch(0.9_0.085_92/0.22),0_10px_24px_-12px_oklch(0.19_0.05_263/0.6)] ring-gold/40"
+          : "bg-sheet shadow-[inset_0_1px_0_var(--glass-edge)] ring-(--glass-border) hover:bg-paper",
       )}
     >
-      <span className={cn("text-xs", active === status ? "text-navy-200" : "text-muted-foreground")}>{label}</span>
-      <span className="text-lg leading-tight font-semibold tabular">{formatNumber(count)}</span>
+      {active === status ? <span aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-gold" /> : null}
+      <span className={cn("text-xs", active === status ? "text-sidebar-foreground/70" : "text-muted-foreground")}>{label}</span>
+      <span className={cn("numeral text-[1.375rem] leading-tight font-semibold", active === status && "text-gold-light")}>{formatNumber(count)}</span>
     </button>
   );
   return (
@@ -79,14 +83,14 @@ function ApprovalsPanel({ items, currency }: { items: MyWork["approvals_pending"
   }
   return (
     <Panel title="Waiting for your decision" description="Submitted by colleagues; approving or rejecting is recorded with your note">
-      <ul className="divide-y">
+      <RevealGroup as="ul" stagger={0.05} className="divide-y divide-(--glass-border)">
         {items.map(({ approval_id, recommendation: rec }) => (
-          <li key={approval_id} className="flex flex-col gap-3 py-3.5 first:pt-0 last:pb-0 md:flex-row md:items-start md:justify-between">
+          <RevealItem as="li" y={10} key={approval_id} className="flex flex-col gap-3 py-3.5 first:pt-0 last:pb-0 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap gap-1.5">
                 <RecStatusBadge status={rec.status} />
               </div>
-              <Link href={`/app/workflows/recommendations/${rec.id}`} className="mt-1 block font-medium underline-offset-3 hover:underline">
+              <Link href={`/app/workflows/recommendations/${rec.id}`} className="mt-1 block font-medium underline-offset-3 transition-colors duration-200 hover:text-primary hover:underline">
                 {rec.title}
               </Link>
               <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">{rec.summary}</p>
@@ -102,9 +106,9 @@ function ApprovalsPanel({ items, currency }: { items: MyWork["approvals_pending"
                 Reject
               </Button>
             </div>
-          </li>
+          </RevealItem>
         ))}
-      </ul>
+      </RevealGroup>
       <NoteDialog
         open={Boolean(target)}
         onOpenChange={(open) => {
@@ -224,7 +228,7 @@ export function WorkflowsView() {
                     })
                   }
                 >
-                  {generate.isPending ? <LoaderCircleIcon className="animate-spin" aria-hidden /> : <SparklesIcon aria-hidden />}
+                  {generate.isPending ? <LoaderCircleIcon className="animate-spin" aria-hidden /> : <ScrollTextIcon aria-hidden />}
                   Generate from rules
                 </Button>
               ) : null}
@@ -303,11 +307,13 @@ export function WorkflowsView() {
                   description={canWrite ? "Generate them from the rules, create one, or turn a Decision Lab scenario into one." : "Recommendations created by your team appear here."}
                 />
               ) : (
-                <ul className={cn("divide-y border-t", recs.isPlaceholderData && "opacity-55")}>
-                  {recList.map((rec) => (
-                    <RecommendationRow key={rec.id} rec={rec} currency={currency} nameOf={nameOf} />
-                  ))}
-                </ul>
+                <div className={cn("border-t border-(--glass-border) px-1.5 pt-1.5 transition-opacity duration-200", recs.isPlaceholderData && "opacity-55")}>
+                  <RevealGroup as="ul" stagger={0.04} className="space-y-0.5">
+                    {recList.map((rec) => (
+                      <RecommendationRow key={rec.id} rec={rec} currency={currency} nameOf={nameOf} />
+                    ))}
+                  </RevealGroup>
+                </div>
               )}
             </Panel>
             {storeScoped ? <Notice>You see recommendations for your stores only.</Notice> : null}

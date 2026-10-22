@@ -14,7 +14,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { Seal } from "@/components/art/ornaments";
 import { StatusBadge, type Tone } from "@/components/app/badges";
+import { sealWords } from "@/components/app/print";
+import { SpotlightCard } from "@/components/kit/spotlight-card";
+import { RevealItem } from "@/components/motion/reveal";
 import { useSession } from "@/components/app/session-provider";
 import { useOrgQuery } from "@/hooks/use-org-query";
 import { formatDelta } from "@/lib/app/decision-lab-format";
@@ -122,8 +126,12 @@ export function Pipeline({ status, className }: { status: RecommendationStatus; 
           <li key={step} className="flex items-center gap-1.5" aria-current={current ? "step" : undefined}>
             <span
               className={cn(
-                "inline-flex h-6 items-center gap-1 rounded-full px-2.5 font-medium ring-1",
-                current ? "bg-primary text-primary-foreground ring-primary" : done ? "bg-brand-50 text-brand-700 ring-brand-200 dark:bg-brand-800/30 dark:text-brand-200 dark:ring-brand-700/40" : "text-muted-foreground ring-foreground/12",
+                "inline-flex h-6 items-center gap-1 rounded-full px-2.5 font-medium shadow-[inset_0_1px_0_var(--glass-edge)] ring-1 transition-colors duration-300",
+                current
+                  ? "bg-primary text-primary-foreground shadow-[0_6px_16px_-6px_color-mix(in_oklch,var(--primary)_60%,transparent)] ring-primary"
+                  : done
+                    ? "bg-brand-50/80 text-brand-700 ring-brand-200 dark:bg-brand-800/30 dark:text-brand-200 dark:ring-brand-700/40"
+                    : "bg-white/40 text-muted-foreground ring-(--glass-border) dark:bg-white/[0.03]",
               )}
             >
               {done && !current ? <CircleCheckIcon className="size-3" aria-hidden /> : null}
@@ -155,35 +163,60 @@ export function useMembers() {
     if (id === user.id) return "You";
     return byId[id]?.full_name ?? "A colleague";
   };
-  return { canList, members: members.filter((m) => m.status === "active"), nameOf, loading: query.isPending && canList };
+  /** A member's role label, when the member list is visible to this role. */
+  const roleOf = (id: string | null | undefined): string | null => (id ? (byId[id]?.role_label ?? null) : null);
+  /** The role of a member known only by name (approvals carry names): only when exactly one member has it. */
+  const roleOfName = (name: string | null | undefined): string | null => {
+    if (!name) return null;
+    const matches = members.filter((m) => m.full_name === name);
+    return matches.length === 1 ? matches[0].role_label : null;
+  };
+  return { canList, members: members.filter((m) => m.status === "active"), nameOf, roleOf, roleOfName, loading: query.isPending && canList };
+}
+
+/**
+ * A clickable row inside a glass panel: on hover it rises a pixel onto its own light glass tile, on
+ * press it settles back (pointer devices only; still under reduced motion).
+ */
+export const ROW_INTERACTIVE =
+  "rounded-xl outline-none transition-[background-color,box-shadow,translate,scale] duration-300 ease-(--ease-out) hover:-translate-y-px hover:bg-sheet hover:shadow-[inset_0_1px_0_var(--glass-edge),0_0_0_1px_var(--glass-border),0_10px_24px_-14px_oklch(0.19_0.05_263/0.3)] focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.99] motion-reduce:transition-colors motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100";
+
+/** The approval seal, pressed beside an approved item's status (its word is the status badge's text). */
+export function ApprovedSeal({ className, mark = "approved" }: { className?: string; mark?: string }) {
+  return <Seal text={sealWords("Approved")} mark={mark} tone="verdigris" rotate={-12} className={cn("shrink-0", className)} />;
 }
 
 export function RecommendationRow({ rec, currency, nameOf }: { rec: Recommendation; currency: string; nameOf: (id: string | null) => string }) {
   const impact = impactSummary(rec, currency);
   return (
-    <li>
-      <Link
-        href={`/app/workflows/recommendations/${rec.id}`}
-        className="block rounded-xl px-4 py-3.5 outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50 sm:px-5"
-      >
-        <div className="flex flex-wrap items-center gap-1.5">
-          <RecStatusBadge status={rec.status} />
-          <PriorityBadge priority={rec.priority} />
-          <ConfidenceBadge confidence={rec.confidence} />
-          <StatusBadge>{humanize(rec.category)}</StatusBadge>
-          {rec.store_code ? <StatusBadge tone="info">{rec.store_code}</StatusBadge> : null}
-        </div>
-        <p className="mt-1.5 font-medium text-foreground">{rec.title}</p>
-        <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">{rec.summary}</p>
-        <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          {impact ? <span className="font-medium text-foreground/80">{impact}</span> : null}
-          <span>{SOURCE_LABELS[rec.source] ?? humanize(rec.source)}</span>
-          <span>
-            Created {formatRelative(rec.created_at)} by {nameOf(rec.created_by)}
-          </span>
-          {rec.measurement_end ? <span>Measuring to {formatDate(rec.measurement_end)}</span> : null}
-        </p>
-      </Link>
-    </li>
+    <RevealItem as="li" y={10}>
+      <SpotlightCard className="rounded-xl">
+        <Link
+          href={`/app/workflows/recommendations/${rec.id}`}
+          className={cn("flex items-start gap-4 px-4 py-3.5 sm:px-4", ROW_INTERACTIVE)}
+        >
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <RecStatusBadge status={rec.status} />
+              <PriorityBadge priority={rec.priority} />
+              <ConfidenceBadge confidence={rec.confidence} />
+              <StatusBadge>{humanize(rec.category)}</StatusBadge>
+              {rec.store_code ? <StatusBadge tone="info">{rec.store_code}</StatusBadge> : null}
+            </div>
+            <p className="mt-1.5 font-medium text-foreground">{rec.title}</p>
+            <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">{rec.summary}</p>
+            <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              {impact ? <span className="font-medium text-foreground/80">{impact}</span> : null}
+              <span>{SOURCE_LABELS[rec.source] ?? humanize(rec.source)}</span>
+              <span>
+                Created {formatRelative(rec.created_at)} by {nameOf(rec.created_by)}
+              </span>
+              {rec.measurement_end ? <span>Measuring to {formatDate(rec.measurement_end)}</span> : null}
+            </p>
+          </div>
+          {rec.status === "approved" ? <ApprovedSeal mark={rec.id} className="size-16 self-center" /> : null}
+        </Link>
+      </SpotlightCard>
+    </RevealItem>
   );
 }

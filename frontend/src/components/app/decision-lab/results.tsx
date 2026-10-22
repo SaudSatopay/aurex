@@ -4,9 +4,14 @@ import { ArrowDownRightIcon, ArrowUpRightIcon, CircleAlertIcon, LockIcon, MinusI
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
 
+import { Seal, SpecimenOverprint } from "@/components/art/ornaments";
+import { Rosette } from "@/components/art/rosette";
 import { useChartView } from "@/components/app/charts/chart-parts";
+import { NumberTicker } from "@/components/kit/number-ticker";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { DataTable, type Column } from "@/components/app/data-table";
 import { DetailList, NoteList, Panel, SectionHeading } from "@/components/app/page";
+import { Serial } from "@/components/app/print";
 import { periodTitle } from "@/components/app/sections/sales";
 import { Notice } from "@/components/app/states";
 import { Label } from "@/components/ui/label";
@@ -27,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { CumulativeCashChart, DeltaBarsChart, ScenarioLinesChart, Tornado, tornadoRows } from "./charts";
 import { Figure, HashValue, RangeStrip, rangeDomain, ReliabilityBadge, SourceLegend, SyntheticBadge } from "./common";
 import { AssumptionRows, LeverResultPanel } from "./lever-results";
+import { RangeEngraving } from "./range-engraving";
 
 type MetricKey = "net_sales" | "operating_expenses" | "ebitda" | "net_profit" | "free_cash_flow" | "gross_profit";
 
@@ -44,45 +50,57 @@ function direction(value: number | null, up: boolean): "good" | "bad" | "none" {
   return value > 0 === up ? "good" : "bad";
 }
 
-/** One delta figure in the outcome band: value, arrow, whether the move is favourable. */
+/** Direction inks on the ink plate: lifted verdigris and oxblood, readable on navy. */
+const PLATE_GOOD = "text-[color-mix(in_oklch,var(--verdigris),white_52%)]";
+const PLATE_BAD = "text-[color-mix(in_oklch,var(--oxblood),white_50%)]";
+
+/** One delta figure in the outcome band, set as a denomination: value, direction, whether the move is favourable. */
 function BandFigure({
   label,
   value,
   text,
   up = true,
   hint,
+  format,
 }: {
   label: string;
   value: number | null;
   text: string;
   up?: boolean;
   hint?: ReactNode;
+  /** Formatter that produces `text` from `value`; when given, the figure counts up to it. */
+  format?: (value: number) => string;
 }) {
   const dir = direction(value, up);
   const Icon = value === null || value === 0 ? MinusIcon : value > 0 ? ArrowUpRightIcon : ArrowDownRightIcon;
   const word = value === null ? "not available" : value === 0 ? "no change" : `${value > 0 ? "increase" : "decrease"}, ${dir === "good" ? "favourable" : "unfavourable"}`;
   return (
-    <div role="group" aria-label={`${label} change`} className="min-w-0 border-t border-white/10 px-4 py-3.5 sm:px-5">
-      <p className="text-xs text-navy-200">{label}</p>
-      <p className="mt-1 flex items-center gap-1.5 text-lg leading-tight font-semibold text-white">
+    <div
+      role="group"
+      aria-label={`${label} change`}
+      className="min-w-0 border-t border-l border-gold-light/12 px-4 py-3.5 transition-colors duration-300 ease-(--ease-out) hover:bg-gold-light/[0.05] sm:px-5"
+    >
+      <p className="text-xs text-sidebar-foreground/65">{label}</p>
+      <p className="mt-1 flex items-center gap-1.5 text-sidebar-foreground">
         <Icon
-          className={cn(
-            "size-4 shrink-0",
-            dir === "good" && "text-[color-mix(in_oklch,var(--success),white_35%)]",
-            dir === "bad" && "text-[color-mix(in_oklch,var(--destructive),white_30%)]",
-            dir === "none" && "text-navy-300",
-          )}
+          className={cn("size-3.5 shrink-0", dir === "good" && PLATE_GOOD, dir === "bad" && PLATE_BAD, dir === "none" && "text-sidebar-foreground/45")}
           aria-hidden
         />
-        <span>{text}</span>
+        <span className="numeral text-[1.375rem] leading-none font-semibold">
+          {format && isNum(value) ? <NumberTicker value={value} format={format} /> : <span>{text}</span>}
+        </span>
         <span className="sr-only"> ({word})</span>
       </p>
-      {hint ? <p className="mt-0.5 text-xs leading-snug text-navy-300">{hint}</p> : null}
+      {hint ? <p className="mt-0.5 text-xs leading-snug text-sidebar-foreground/55">{hint}</p> : null}
     </div>
   );
 }
 
-/** The headline of a simulation: net profit change with its P10–P90 range, then the other deltas. */
+/**
+ * The headline of a simulation, printed on an ink plate like a note: the net profit change as its
+ * denomination, the P10–P90 range engraved as a guilloché envelope with the median in gold, the
+ * inputs hash as its serial, then the other deltas. Synthetic runs carry the SPECIMEN overprint.
+ */
 function OutcomeBand({ result, scopeLabel }: { result: SimulationResult; scopeLabel: string }) {
   const currency = result.scope.currency;
   const totals = result.delta.totals;
@@ -92,67 +110,106 @@ function OutcomeBand({ result, scopeLabel }: { result: SimulationResult; scopeLa
   const months = result.months;
   const range = months.length ? `${formatMonth(months[0])} – ${formatMonth(months[months.length - 1])}` : null;
   const netDir = direction(net, true);
+  const money = (v: number) => formatDelta(v, currency);
+  const points = (v: number) => formatPoints(v);
   return (
-    <section aria-label="Simulation outcome" className="overflow-hidden rounded-2xl bg-navy-950 text-white ring-1 ring-white/10">
-      <div className="grid gap-0 @4xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-        <div className="px-5 pt-5 pb-5 sm:px-6">
-          <p className="text-[0.8125rem] text-navy-200">
-            Net profit change over {result.horizon_months} {result.horizon_months === 1 ? "month" : "months"}
-            {range ? <span className="text-navy-300"> · {range}</span> : null}
-          </p>
+    <section
+      aria-label="Simulation outcome"
+      className="relative isolate overflow-hidden rounded-2xl text-sidebar-foreground shadow-[inset_0_1px_0_oklch(0.9_0.085_92/0.22),0_0_0_1px_oklch(0.9_0.085_92/0.14),var(--glass-shadow-lift)]"
+    >
+      <div aria-hidden className="aurora-hero" />
+      <div aria-hidden className="pointer-events-none absolute -top-36 -right-36 -z-[1] size-[26rem] opacity-[0.3]">
+        <Rosette tone="gold" bands={OUTCOME_BANDS} strokeWidth={0.6} opacity={0.75} />
+      </div>
+      {result.scope.is_synthetic ? <SpecimenOverprint tone="gold" className="-z-[1] opacity-45" /> : null}
+      <div className="grid gap-0 @4xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+        <div className="min-w-0 px-5 pt-5 pb-5 sm:px-7 sm:pt-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+            <p className="text-[0.8125rem] text-sidebar-foreground/75">
+              Net profit change over {result.horizon_months} {result.horizon_months === 1 ? "month" : "months"}
+              {range ? <span className="text-sidebar-foreground/55"> · {range}</span> : null}
+            </p>
+            <Serial value={result.inputs_hash} label="Inputs" surface="plate" />
+          </div>
           <p
             role="group"
             aria-label="Net profit change"
             className={cn(
-              "mt-2 text-[2.5rem] leading-none font-semibold tracking-[-0.03em] sm:text-[3rem]",
-              netDir === "bad" && "text-[color-mix(in_oklch,var(--destructive),white_45%)]",
-              netDir === "good" && "text-[color-mix(in_oklch,var(--success),white_50%)]",
+              "numeral mt-3 text-[3rem] leading-[0.9] font-semibold tracking-[-0.035em] sm:text-[4.25rem]",
+              netDir === "bad" && PLATE_BAD,
+              netDir === "good" && PLATE_GOOD,
+              netDir === "none" && "text-gold-light",
             )}
           >
-            {formatDelta(net, currency)}
+            {isNum(net) ? <NumberTicker value={net} format={(v) => formatDelta(v, currency)} /> : formatDelta(net, currency)}
           </p>
-          <p className="mt-1.5 text-[0.8125rem] text-navy-200">
+          <p className="mt-2.5 text-[0.8125rem] text-sidebar-foreground/80">
             {netDir === "none" ? "No change against the forecast baseline" : `${netDir === "good" ? "Better" : "Worse"} than the forecast baseline`}
-            {isNum(totals.net_profit) ? <span className="text-navy-300"> · {formatFullAmount(totals.net_profit, currency)}</span> : null}
+            {isNum(totals.net_profit) ? <span className="text-sidebar-foreground/55"> · {formatFullAmount(totals.net_profit, currency)}</span> : null}
           </p>
-          <div className="mt-5 max-w-md">
-            <p className="mb-1.5 text-xs text-navy-200">Range across {formatNumber(unc?.runs ?? null)} Monte Carlo runs</p>
-            <RangeStrip
-              surface="dark"
+          <div className="mt-6">
+            <p className="mb-2 text-xs text-sidebar-foreground/65">Range across {formatNumber(unc?.runs ?? null)} Monte Carlo runs</p>
+            <RangeEngraving
               label="Net profit change"
               low={cleanAmount(npd?.p10)}
               mid={cleanAmount(npd?.p50)}
               high={cleanAmount(npd?.p90)}
-              format={(v) => formatDelta(v, currency)}
+              format={money}
             />
           </div>
-          <p className="mt-4 text-[0.8125rem] text-navy-100">
+          <p className="mt-5 flex flex-wrap items-baseline gap-x-2 text-[0.8125rem] text-sidebar-foreground/80">
             Probability net profit improves:{" "}
-            <strong className="font-semibold text-white">{formatProbability(unc?.probability_net_profit_positive)}</strong>
+            <strong className="numeral text-[1.25rem] leading-none font-semibold text-gold-light">
+              {isNum(unc?.probability_net_profit_positive) ? (
+                <NumberTicker value={unc.probability_net_profit_positive} format={formatProbability} />
+              ) : (
+                formatProbability(unc?.probability_net_profit_positive)
+              )}
+            </strong>
           </p>
         </div>
-        <div className="grid grid-cols-1 border-white/10 @xs:grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-2 @4xl:border-l">
-          <BandFigure label="Net sales" value={cleanAmount(totals.net_sales)} text={formatDelta(totals.net_sales, currency)} />
+        <div className="-mr-px grid grid-cols-1 content-start border-gold-light/12 @xs:grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-2 @4xl:border-l">
+          <BandFigure label="Net sales" value={cleanAmount(totals.net_sales)} text={formatDelta(totals.net_sales, currency)} format={money} />
           <BandFigure
             label="Operating expenses"
             value={cleanAmount(totals.operating_expenses)}
             text={formatDelta(totals.operating_expenses, currency)}
             up={false}
+            format={money}
           />
-          <BandFigure label="EBITDA" value={cleanAmount(totals.ebitda)} text={formatDelta(totals.ebitda, currency)} />
-          <BandFigure label="Free cash flow" value={cleanAmount(totals.free_cash_flow)} text={formatDelta(totals.free_cash_flow, currency)} />
-          <BandFigure label="Net margin" value={cleanFraction(result.delta.net_margin_pp)} text={formatPoints(cleanFraction(result.delta.net_margin_pp))} />
-          <BandFigure label="Gross margin" value={cleanFraction(result.delta.gross_margin_pp)} text={formatPoints(cleanFraction(result.delta.gross_margin_pp))} />
+          <BandFigure label="EBITDA" value={cleanAmount(totals.ebitda)} text={formatDelta(totals.ebitda, currency)} format={money} />
+          <BandFigure label="Free cash flow" value={cleanAmount(totals.free_cash_flow)} text={formatDelta(totals.free_cash_flow, currency)} format={money} />
+          <BandFigure
+            label="Net margin"
+            value={cleanFraction(result.delta.net_margin_pp)}
+            text={formatPoints(cleanFraction(result.delta.net_margin_pp))}
+            format={points}
+          />
+          <BandFigure
+            label="Gross margin"
+            value={cleanFraction(result.delta.gross_margin_pp)}
+            text={formatPoints(cleanFraction(result.delta.gross_margin_pp))}
+            format={points}
+          />
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-white/10 px-5 py-3 text-xs text-navy-200 sm:px-6">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-gold-light/12 bg-plate-deep/40 px-5 py-3 text-xs text-sidebar-foreground/65 sm:px-7">
         <span>Scope: {scopeLabel}</span>
         <span>Against the forecast baseline{result.baseline?.as_of ? ` with data to ${formatDate(result.baseline.as_of)}` : ""}</span>
-        {result.scope.is_synthetic ? <span className="font-medium text-navy-100">Synthetic demonstration data</span> : null}
+        {result.scope.is_synthetic ? <span className="font-medium text-gold-light">Synthetic demonstration data</span> : null}
       </div>
     </section>
   );
 }
+
+/** A compact plate rosette for the outcome band (lighter than the hero's: fewer copies per band). */
+const OUTCOME_BANDS = [
+  { radius: 28, amp: 12, lobes: 7, copies: 5 },
+  { radius: 82, amp: 16, lobes: 18, amp2: 6, lobes2: 4, copies: 7 },
+  { radius: 156, amp: 20, lobes: 28, amp2: 8, lobes2: 6, copies: 9 },
+  { radius: 236, amp: 15, lobes: 40, amp2: 8, lobes2: 7, copies: 8 },
+  { radius: 300, amp: 6, lobes: 72, copies: 3 },
+];
 
 function monthlyRows(result: SimulationResult, key: MetricKey) {
   const base = result.baseline?.monthly ?? [];
@@ -193,7 +250,7 @@ function MonthlyPanel({ result }: { result: SimulationResult }) {
             Measure
           </Label>
           <Select value={metric} onValueChange={(value) => setMetric(value as MetricKey)}>
-            <SelectTrigger id={selectId} size="sm" className="h-7 w-[11.5rem] bg-background text-[0.8125rem]">
+            <SelectTrigger id={selectId} size="sm" className="h-7 w-[11.5rem] bg-white/60 text-[0.8125rem] dark:bg-white/[0.05]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent position="popper" align="end">
@@ -267,7 +324,7 @@ function UncertaintyPanel({ result }: { result: SimulationResult }) {
           </li>
         ))}
       </ul>
-      <div className="@container mt-5 border-t pt-4">
+      <div className="@container mt-5 border-t border-(--glass-border) pt-4">
         <div className="grid gap-4 @md:grid-cols-3">
           <Figure label="Probability net profit improves" value={formatProbability(unc.probability_net_profit_positive)} />
           <Figure
@@ -431,6 +488,8 @@ export function SimulationResults({
 }) {
   const currency = result.scope.currency;
   const revenueNotes = result.levers.filter((l) => l.revenue_effect_note);
+  // The result itself says revenue did not move: net sales change is exactly zero (after float noise).
+  const revenueUnchanged = cleanAmount(result.delta.totals.net_sales) === 0;
   return (
     <div className="@container space-y-6">
       {title}
@@ -438,18 +497,31 @@ export function SimulationResults({
 
       {revenueNotes.length ? (
         <div className="space-y-2" aria-label="Revenue effects">
-          {revenueNotes.map((lever) => (
-            <div
-              key={lever.index}
-              className="flex items-start gap-2.5 rounded-lg bg-brand-50 px-4 py-3 text-sm leading-relaxed text-navy-800 ring-1 ring-brand-200/80 dark:bg-brand-800/25 dark:text-navy-100 dark:ring-brand-700/40"
-            >
-              <CircleAlertIcon className="mt-0.5 size-4 shrink-0 text-brand-600 dark:text-sky-accent" aria-hidden />
-              <p>
-                <strong className="font-semibold">Revenue effect{revenueNotes.length > 1 ? ` (lever ${lever.index + 1})` : ""}:</strong>{" "}
-                {lever.revenue_effect_note}
-              </p>
-            </div>
-          ))}
+          {revenueNotes.map((lever) => {
+            const sealed = lever.type === "workforce" && revenueUnchanged;
+            return (
+              <div key={lever.index} className="relative flex items-center gap-4 rounded-xl glass px-4 py-3.5 sm:px-5">
+                <div className="min-w-0 flex-1 space-y-1">
+                  {sealed ? (
+                    <p className="font-display text-[1.0625rem] leading-snug font-semibold tracking-[-0.01em]">
+                      Revenue unchanged{" "}
+                      <span className="font-sans text-[0.8125rem] font-normal text-muted-foreground">
+                        · net sales change <span className="numeral text-foreground">{formatDelta(result.delta.totals.net_sales, currency)}</span>
+                      </span>
+                    </p>
+                  ) : null}
+                  <p className="flex items-start gap-2 text-sm leading-relaxed text-foreground/90">
+                    {sealed ? null : <CircleAlertIcon className="mt-0.5 size-4 shrink-0 text-prussian" aria-hidden />}
+                    <span>
+                      <strong className="font-semibold">Revenue effect{revenueNotes.length > 1 ? ` (lever ${lever.index + 1})` : ""}:</strong>{" "}
+                      {lever.revenue_effect_note}
+                    </span>
+                  </p>
+                </div>
+                {sealed ? <Seal text="Revenue unchanged" mark="lever:workforce" tone="verdigris" rotate={-8} className="-my-2 size-[5.5rem] shrink-0" /> : null}
+              </div>
+            );
+          })}
         </div>
       ) : null}
 
@@ -460,29 +532,39 @@ export function SimulationResults({
       ) : null}
 
       {result.redacted ? (
-        <div className="flex items-start gap-2.5 rounded-lg bg-muted/70 px-3.5 py-3 text-sm leading-relaxed">
+        <div className="flex items-start gap-2.5 rounded-xl bg-sheet/70 px-3.5 py-3 text-sm leading-relaxed ring-1 ring-(--glass-border)">
           <LockIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
           <p className="text-muted-foreground">{result.redacted}</p>
         </div>
       ) : null}
 
-      <div className="grid gap-6 @5xl:grid-cols-2">
-        <MonthlyPanel result={result} />
-        <UncertaintyPanel result={result} />
-        <CashPanel result={result} />
-        <SensitivityPanel result={result} />
-      </div>
+      <RevealGroup className="grid gap-6 @5xl:grid-cols-2" stagger={0.05}>
+        <RevealItem y={12} className="grid min-w-0">
+          <MonthlyPanel result={result} />
+        </RevealItem>
+        <RevealItem y={12} className="grid min-w-0">
+          <UncertaintyPanel result={result} />
+        </RevealItem>
+        <RevealItem y={12} className="grid min-w-0">
+          <CashPanel result={result} />
+        </RevealItem>
+        <RevealItem y={12} className="grid min-w-0">
+          <SensitivityPanel result={result} />
+        </RevealItem>
+      </RevealGroup>
 
       <SectionHeading
         title="Levers"
         description="What each change does, the evidence behind it and the assumptions it rests on"
         actions={<SourceLegend />}
       />
-      <div className="grid gap-4 @5xl:grid-cols-2">
+      <RevealGroup className="grid gap-4 @5xl:grid-cols-2" stagger={0.05}>
         {result.levers.map((lever) => (
-          <LeverResultPanel key={lever.index} lever={lever} currency={currency} categories={categories} />
+          <RevealItem key={lever.index} y={12} className="grid min-w-0">
+            <LeverResultPanel lever={lever} currency={currency} categories={categories} />
+          </RevealItem>
         ))}
-      </div>
+      </RevealGroup>
 
       <div className="grid gap-6 @5xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <Panel title="All assumptions" description="Every input the result depends on, with its source">

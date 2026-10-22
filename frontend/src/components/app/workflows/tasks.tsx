@@ -9,6 +9,7 @@ import { DataTable, type Column } from "@/components/app/data-table";
 import { Panel } from "@/components/app/page";
 import { useSession } from "@/components/app/session-provider";
 import { EmptyState, TableSkeleton } from "@/components/app/states";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { QueryError, toastError } from "@/components/app/decision-lab/common";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -230,7 +231,7 @@ export function TasksPanel({ recommendations }: { recommendations: Pick<Recommen
           description={canManage ? "Create tasks for approved recommendations to track the work." : "Tasks assigned to you appear here."}
         />
       ) : (
-        <div className={query.isPlaceholderData ? "opacity-55" : undefined}>
+        <div className={cn("transition-opacity duration-200", query.isPlaceholderData && "opacity-55")}>
           <DataTable caption="Tasks" columns={columns} rows={rows} rowKey={(t) => t.id} dense pageSize={20} />
         </div>
       )}
@@ -301,19 +302,30 @@ export function NotificationsPanel() {
       ) : data.notifications.length === 0 ? (
         <EmptyState compact icon={BellIcon} title={unreadOnly ? "No unread notifications" : "No notifications"} description="Approval requests, decisions, task assignments and finished reports appear here." />
       ) : (
-        <ul className={cn("divide-y", query.isPlaceholderData && "opacity-55")}>
+        <RevealGroup as="ul" stagger={0.04} className={cn("-mx-2 space-y-0.5 transition-opacity duration-200", query.isPlaceholderData && "opacity-55")}>
           {data.notifications.map((n) => {
             const link = internalLink(n.link);
             return (
-              <li key={n.id} className="flex items-start justify-between gap-3 py-3">
+              <RevealItem
+                as="li"
+                y={10}
+                key={n.id}
+                className={cn(
+                  "flex items-start justify-between gap-3 rounded-xl px-2 py-3 transition-colors duration-200 hover:bg-white/55 dark:hover:bg-white/[0.04]",
+                  !n.read && "bg-primary/[0.035]",
+                )}
+              >
                 <div className="flex min-w-0 items-start gap-2.5">
-                  <span aria-hidden className={cn("mt-1.5 size-2 shrink-0 rounded-full", n.read ? "bg-transparent ring-1 ring-foreground/20" : "bg-primary")} />
+                  <span aria-hidden className="relative mt-1.5 flex size-2 shrink-0">
+                    {!n.read ? <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-40 motion-reduce:hidden" /> : null}
+                    <span className={cn("relative inline-flex size-2 rounded-full", n.read ? "bg-transparent ring-1 ring-foreground/20" : "bg-primary")} />
+                  </span>
                   <div className="min-w-0">
                     <p className={cn("text-sm", n.read ? "text-foreground/80" : "font-medium")}>
                       {link ? (
                         <Link
                           href={link}
-                          className="underline-offset-3 hover:underline"
+                          className="underline-offset-3 transition-colors duration-200 hover:text-primary hover:underline"
                           onClick={() => {
                             if (!n.read) markOne.mutate(n.id, { onSuccess: () => void invalidate("/notifications", "/workflows") });
                           }}
@@ -342,10 +354,10 @@ export function NotificationsPanel() {
                     Mark read
                   </Button>
                 ) : null}
-              </li>
+              </RevealItem>
             );
           })}
-        </ul>
+        </RevealGroup>
       )}
     </Panel>
   );

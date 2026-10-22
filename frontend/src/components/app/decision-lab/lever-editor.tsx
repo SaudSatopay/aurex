@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { useId, useLayoutEffect, useState, type ReactNode } from "react";
 
+import { MintMark } from "@/components/art/ornaments";
+import { Perforation } from "@/components/app/print";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -53,6 +55,11 @@ export const LEVER_ICONS: Record<LeverType, LucideIcon> = {
   retention: HeartHandshakeIcon,
   product_mix: ShuffleIcon,
 };
+
+/** Each lever type wears its own engraved mint mark: the same on the builder slip, its result and the menu. */
+export function LeverMark({ type, className, tone = "ink" }: { type: string; className?: string; tone?: "ink" | "gold" }) {
+  return <MintMark name={`lever:${type}`} tone={tone} className={cn("shrink-0", className)} />;
+}
 
 export const LEVER_LABELS: Record<LeverType, string> = {
   workforce: "Workforce",
@@ -119,7 +126,10 @@ function CategoryMultiSelect({
               const checkId = `${listId}-${category.code}`;
               return (
                 <li key={category.code}>
-                  <label htmlFor={checkId} className="flex cursor-pointer items-start gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
+                  <label
+                    htmlFor={checkId}
+                    className="flex cursor-pointer items-start gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors duration-150 hover:bg-foreground/[0.05] dark:hover:bg-white/[0.06]"
+                  >
                     <Checkbox
                       id={checkId}
                       className="mt-0.5"
@@ -142,7 +152,7 @@ function CategoryMultiSelect({
         ) : (
           <p className="px-3 py-3 text-sm text-muted-foreground">Categories load with the evidence for this scope.</p>
         )}
-        <div className="flex justify-between gap-2 border-t px-3 py-2">
+        <div className="flex justify-between gap-2 border-t border-(--glass-border) px-3 py-2">
           <Button variant="ghost" size="sm" onClick={() => onChange([])} disabled={!value.length}>
             All categories
           </Button>
@@ -445,7 +455,11 @@ function EvidenceHint({ type, evidence, currency }: { type: LeverType; evidence?
     text = "Each category changes from its trailing monthly run-rate.";
   }
   if (!text) return null;
-  return <p className="rounded-md bg-muted/60 px-3 py-2 text-xs leading-relaxed text-muted-foreground [&_strong]:font-semibold [&_strong]:text-foreground">{text}</p>;
+  return (
+    <p className="rounded-lg border-l-2 border-gold/70 bg-paper/70 py-2 pr-3 pl-3 text-xs leading-relaxed text-muted-foreground [&_strong]:font-semibold [&_strong]:text-foreground">
+      {text}
+    </p>
+  );
 }
 
 export function LeverCard({
@@ -473,7 +487,6 @@ export function LeverCard({
   const titleId = useId();
   const labelId = useId();
   const noteId = useId();
-  const Icon = LEVER_ICONS[draft.type];
   const fields = visibleFields(draft);
   const main = fields.filter((f) => !f.advanced && f.key !== "start_month");
   const startMonth = fields.find((f) => f.key === "start_month");
@@ -487,12 +500,10 @@ export function LeverCard({
   const setValue = (key: string, value: string | string[]) => onChange({ ...draft, values: { ...draft.values, [key]: value } });
 
   return (
-    <section aria-labelledby={titleId} className="rounded-xl bg-card ring-1 ring-foreground/10">
-      <header className="flex items-start justify-between gap-3 border-b px-4 py-3">
-        <div className="flex min-w-0 items-start gap-2.5">
-          <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-md bg-brand-50 text-brand-700 dark:bg-brand-800/30 dark:text-brand-200">
-            <Icon className="size-4" aria-hidden />
-          </span>
+    <section aria-labelledby={titleId} className="rounded-xl glass">
+      <header className="flex items-start justify-between gap-3 px-4 pt-3.5 pb-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <LeverMark type={draft.type} className="mt-0.5 size-9" />
           <div className="min-w-0">
             <h3 id={titleId} className="font-heading text-sm font-semibold">
               <span className="text-muted-foreground tabular">{index + 1}.</span> {LEVER_LABELS[draft.type]}
@@ -504,6 +515,7 @@ export function LeverCard({
           <Trash2Icon aria-hidden />
         </Button>
       </header>
+      <Perforation className="mx-auto w-[calc(100%-1.5rem)]" />
       <div className="space-y-4 px-4 py-4">
         <div className="grid gap-x-3 gap-y-4 sm:grid-cols-2">
           {main.map((field) => (
@@ -550,9 +562,12 @@ export function LeverCard({
               type="button"
               onClick={() => setMoreOpen((v) => !v)}
               aria-expanded={moreOpen || advancedErrors}
-              className="inline-flex items-center gap-1 rounded-md text-xs font-medium text-primary outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="press inline-flex items-center gap-1 rounded-md text-xs font-medium text-primary outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
             >
-              <ChevronDownIcon className={cn("size-3.5 transition-transform", (moreOpen || advancedErrors) && "rotate-180")} aria-hidden />
+              <ChevronDownIcon
+                className={cn("size-3.5 transition-transform duration-300 ease-(--ease-out)", (moreOpen || advancedErrors) && "rotate-180")}
+                aria-hidden
+              />
               {moreOpen || advancedErrors ? "Fewer options" : "More options"}
             </button>
             {moreOpen || advancedErrors ? (

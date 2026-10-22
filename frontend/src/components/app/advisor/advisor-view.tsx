@@ -9,17 +9,19 @@ import {
   SendHorizontalIcon,
   ShieldCheckIcon,
   Trash2Icon,
-  WrenchIcon,
 } from "lucide-react";
+import { AnimatePresence, motion, type Variants } from "motion/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { MintMark } from "@/components/art/ornaments";
 import { StatusBadge } from "@/components/app/badges";
 import { FormError } from "@/components/app/form";
 import { NoteList, PageHeader, Panel } from "@/components/app/page";
 import { useSession } from "@/components/app/session-provider";
 import { Notice, SkeletonBlock } from "@/components/app/states";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { QueryError, toastError } from "@/components/app/decision-lab/common";
 import {
   AlertDialog,
@@ -41,9 +43,31 @@ import type { AdvisorCapabilities, AdvisorMessage, AskResponse, Conversation, Co
 import { formatNumber, formatRelative, humanize } from "@/lib/app/format";
 import { cn } from "@/lib/utils";
 
-import { AssistantAnswer } from "./answer";
+import { AssistantAnswer, CHIP_CLASS } from "./answer";
 
 const MAX = 2000;
+
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
+
+/** Messages rise into the thread on a critically damped spring, sharpening as they arrive. */
+const BUBBLE: Variants = {
+  hidden: { opacity: 0, y: 14, scale: 0.985, filter: "blur(8px)" },
+  shown: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    filter: "blur(0px)",
+    transitionEnd: { filter: "none" },
+    transition: {
+      y: { type: "spring", bounce: 0, visualDuration: 0.55 },
+      scale: { type: "spring", bounce: 0, visualDuration: 0.55 },
+      opacity: { duration: 0.4, ease: EASE_OUT },
+      filter: { duration: 0.45, ease: EASE_OUT },
+    },
+  },
+  exit: { opacity: 0, y: 6, filter: "blur(4px)", transition: { duration: 0.16, ease: EASE_OUT } },
+};
+
 
 function ConversationList({
   conversations,
@@ -81,7 +105,7 @@ function ConversationList({
       ) : conversations.length === 0 ? (
         <p className="px-1 text-sm text-muted-foreground">Your conversations appear here.</p>
       ) : (
-        <ul className="space-y-0.5" aria-label="Conversations">
+        <ul className="space-y-1" aria-label="Conversations">
           {conversations.map((c) => (
             <li key={c.id} className="group/conv relative">
               <button
@@ -89,8 +113,9 @@ function ConversationList({
                 onClick={() => onSelect(c.id)}
                 aria-current={c.id === activeId ? "true" : undefined}
                 className={cn(
-                  "w-full rounded-lg py-2 pr-9 pl-3 text-left outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50",
-                  c.id === activeId && "bg-muted",
+                  "press w-full rounded-xl py-2 pr-9 pl-3 text-left outline-none hover:bg-white/55 focus-visible:ring-3 focus-visible:ring-ring/50 dark:hover:bg-white/[0.05]",
+                  c.id === activeId &&
+                    "bg-white/70 shadow-[inset_0_1px_0_var(--glass-edge),0_0_0_1px_var(--glass-border),0_6px_16px_-10px_oklch(0.19_0.05_263/0.3)] hover:bg-white/70 dark:bg-white/[0.08] dark:hover:bg-white/[0.08]",
                 )}
               >
                 <span className="line-clamp-2 text-[0.8125rem] font-medium">{c.title}</span>
@@ -99,7 +124,7 @@ function ConversationList({
               <Button
                 variant="ghost"
                 size="icon-xs"
-                className="absolute top-2 right-1.5 opacity-70 group-hover/conv:opacity-100 focus-visible:opacity-100"
+                className="absolute top-2 right-1.5 opacity-60 transition-opacity duration-200 group-hover/conv:opacity-100 focus-visible:opacity-100"
                 onClick={() => onDelete(c)}
                 aria-label={`Delete conversation: ${c.title}`}
               >
@@ -113,10 +138,11 @@ function ConversationList({
   );
 }
 
+/** The question, on glassine: a frosted slip laid over the page, its writing in ink. */
 function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
-      <p className="max-w-[min(42rem,90%)] rounded-2xl rounded-br-md bg-navy-950 px-4 py-2.5 text-[0.9375rem] leading-relaxed whitespace-pre-wrap text-white">
+      <p className="max-w-[min(42rem,90%)] rounded-xl rounded-br-sm glass-strong px-4 py-2.5 text-[0.9375rem] leading-relaxed whitespace-pre-wrap text-ink">
         <span className="sr-only">You asked: </span>
         {text}
       </p>
@@ -126,12 +152,11 @@ function UserBubble({ text }: { text: string }) {
 
 function Welcome({ capabilities, onAsk, busy }: { capabilities?: AdvisorCapabilities; onAsk: (q: string) => void; busy: boolean }) {
   return (
-    <div className="space-y-6">
+    <RevealGroup onMount stagger={0.06} className="space-y-6">
+      <RevealItem y={12}>
       <Panel>
         <div className="flex flex-col items-start gap-4 sm:flex-row">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-navy-950 text-white">
-            <BotIcon className="size-5" aria-hidden />
-          </span>
+          <MintMark name="advisor" className="size-14 shrink-0" />
           <div className="min-w-0 space-y-3">
             <div>
               <h2 className="font-heading text-base font-semibold">Ask about your business</h2>
@@ -142,7 +167,7 @@ function Welcome({ capabilities, onAsk, busy }: { capabilities?: AdvisorCapabili
             {capabilities?.examples.length ? (
               <div className="flex flex-wrap gap-2" aria-label="Example questions">
                 {capabilities.examples.map((q) => (
-                  <Button key={q} variant="outline" size="sm" className="h-auto min-h-7 py-1 text-left whitespace-normal max-w-full shrink" onClick={() => onAsk(q)} disabled={busy}>
+                  <Button key={q} variant="outline" size="sm" className={CHIP_CLASS} onClick={() => onAsk(q)} disabled={busy}>
                     {q}
                   </Button>
                 ))}
@@ -151,34 +176,35 @@ function Welcome({ capabilities, onAsk, busy }: { capabilities?: AdvisorCapabili
           </div>
         </div>
       </Panel>
+      </RevealItem>
       {capabilities ? (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <RevealItem y={12} className="grid gap-6 lg:grid-cols-2">
           <Panel title="What the advisor guarantees">
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-2.5 text-sm">
               {capabilities.guarantees.map((g) => (
-                <li key={g} className="flex items-start gap-2">
-                  <ShieldCheckIcon className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+                <li key={g} className="flex items-start gap-2.5">
+                  <ShieldCheckIcon className="mt-0.5 size-4 shrink-0 text-verdigris" aria-hidden />
                   <span>{g}</span>
                 </li>
               ))}
             </ul>
           </Panel>
           <Panel title="Tools it can use" description="Each runs with your permissions and store scope">
-            <ul className="max-h-72 space-y-2 overflow-y-auto pr-1 text-[0.8125rem]">
+            <ul className="max-h-72 divide-y divide-(--glass-border) overflow-y-auto pr-1 text-[0.8125rem]">
               {capabilities.tools.map((t) => (
-                <li key={t.name}>
-                  <p className="flex items-center gap-1.5 font-medium">
-                    <WrenchIcon className="size-3.5 text-muted-foreground" aria-hidden />
+                <li key={t.name} className="py-2 first:pt-0 last:pb-0">
+                  <p className="flex items-baseline gap-2 font-medium">
                     {humanize(t.name)}
+                    <span className="font-mono text-[0.6875rem] font-normal text-muted-foreground">{t.name}</span>
                   </p>
                   <p className="text-xs leading-relaxed text-muted-foreground">{t.description}</p>
                 </li>
               ))}
             </ul>
           </Panel>
-        </div>
+        </RevealItem>
       ) : null}
-    </div>
+    </RevealGroup>
   );
 }
 
@@ -192,6 +218,8 @@ export function AdvisorView() {
   const activeId = params.get("c");
   const composerId = useId();
   const endRef = useRef<HTMLDivElement>(null);
+  /** The question just sent: its bubble is already on screen, so it doesn't rise in a second time. */
+  const [justSent, setJustSent] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [pending, setPending] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ConversationSummary | null>(null);
@@ -248,6 +276,7 @@ export function AdvisorView() {
               ? { ...old, messages: [...old.messages, userMessage, res.message] }
               : { id: res.conversation_id, title: q.slice(0, 120), messages: [userMessage, res.message] },
           );
+          setJustSent(q);
           setText("");
           setPending(null);
           if (res.conversation_id !== activeId) setActive(res.conversation_id);
@@ -343,36 +372,59 @@ export function AdvisorView() {
             <Welcome capabilities={capabilityData} onAsk={submit} busy={busy} />
           ) : (
             <ol className="space-y-5" aria-label="Messages">
-              {messages.map((m) => (
-                <li key={m.id}>
-                  {m.role === "user" ? (
-                    <UserBubble text={m.content} />
-                  ) : (
-                    <AssistantAnswer message={m} onFollowUp={submit} busy={busy} />
-                  )}
-                </li>
-              ))}
-              {pending ? (
-                <li className="space-y-5">
-                  <UserBubble text={pending} />
-                  <div className="flex items-center gap-2.5 rounded-xl bg-card px-4 py-4 text-sm text-muted-foreground ring-1 ring-foreground/10" role="status">
-                    <LoaderCircleIcon className="size-4 animate-spin text-primary" aria-hidden />
-                    Running validated analyses with your permissions…
-                  </div>
-                </li>
-              ) : null}
+              <AnimatePresence initial={false}>
+                {messages.map((m) => (
+                  <motion.li
+                    key={m.id}
+                    data-reveal=""
+                    variants={BUBBLE}
+                    initial={m.role === "user" && m.content === justSent ? false : "hidden"}
+                    animate="shown"
+                  >
+                    {m.role === "user" ? (
+                      <UserBubble text={m.content} />
+                    ) : (
+                      <AssistantAnswer message={m} onFollowUp={submit} busy={busy} />
+                    )}
+                  </motion.li>
+                ))}
+                {pending ? (
+                  <motion.li
+                    key="__pending"
+                    className="space-y-5"
+                    data-reveal=""
+                    variants={BUBBLE}
+                    initial="hidden"
+                    animate="shown"
+                  >
+                    <UserBubble text={pending} />
+                    <div
+                      className="flex w-fit max-w-full items-center gap-2.5 rounded-2xl rounded-tl-md glass px-4 py-3.5 text-sm text-muted-foreground"
+                      role="status"
+                    >
+                      <LoaderCircleIcon className="size-4 animate-spin text-primary" aria-hidden />
+                      Running validated analyses with your permissions…
+                      <span aria-hidden className="flex gap-1 motion-reduce:hidden">
+                        {[0, 1, 2].map((i) => (
+                          <span key={i} className="size-1 animate-pulse rounded-full bg-primary/60" style={{ animationDelay: `${i * 180}ms` }} />
+                        ))}
+                      </span>
+                    </div>
+                  </motion.li>
+                ) : null}
+              </AnimatePresence>
             </ol>
           )}
           <div ref={endRef} />
 
           <form
-            className="sticky bottom-0 z-10 -mx-1 rounded-xl bg-background/95 px-1 pt-2 pb-3 backdrop-blur supports-backdrop-filter:bg-background/80"
+            className="sticky bottom-3 z-10 pt-2"
             onSubmit={(event) => {
               event.preventDefault();
               submit(text);
             }}
           >
-            <div className="rounded-xl bg-card p-2 ring-1 ring-foreground/15 focus-within:ring-2 focus-within:ring-ring/60">
+            <div className="rounded-2xl glass-strong p-2 outline-2 outline-offset-0 outline-transparent transition-[outline-color] duration-200 focus-within:outline-ring/60">
               <Label htmlFor={composerId} className="sr-only">
                 Ask the advisor
               </Label>
@@ -397,7 +449,7 @@ export function AdvisorView() {
                 <p id={`${composerId}-hint`} className="text-xs text-muted-foreground">
                   Enter to send, Shift+Enter for a new line · {formatNumber(text.length)}/{formatNumber(MAX)}
                 </p>
-                <Button type="submit" size="sm" disabled={busy || !text.trim()}>
+                <Button type="submit" size="sm" className="rounded-xl" disabled={busy || !text.trim()}>
                   {busy ? <LoaderCircleIcon className="animate-spin" aria-hidden /> : <SendHorizontalIcon aria-hidden />}
                   Ask
                 </Button>

@@ -3,6 +3,7 @@
 import { MenuIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
 
 import { AurexLogo } from "@/components/brand/logo";
@@ -19,6 +20,7 @@ function isActive(pathname: string, href: string) {
 /** Primary navigation for tablet and desktop widths. */
 export function DesktopNav() {
   const pathname = usePathname();
+  const still = useReducedMotion();
   return (
     <nav aria-label="Primary" className="hidden md:block">
       <ul className="flex items-center gap-1">
@@ -30,13 +32,19 @@ export function DesktopNav() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative inline-flex h-9 items-center rounded-md px-3 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-sky-accent",
-                  // Active marker sits on the header's bottom edge (header is h-16, link is h-9).
-                  "after:absolute after:inset-x-3 after:-bottom-3.5 after:h-0.5 after:rounded-full after:bg-sky-accent",
-                  active ? "text-white after:opacity-100" : "text-navy-200 after:opacity-0 hover:text-white",
+                  "relative inline-flex h-9 items-center rounded-full px-4 text-sm font-medium transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-sky-accent",
+                  active ? "text-white" : "text-navy-200 hover:bg-white/[0.06] hover:text-white",
                 )}
               >
-                {item.label}
+                {active ? (
+                  <motion.span
+                    aria-hidden
+                    layoutId="site-nav-active"
+                    transition={still ? { duration: 0 } : { type: "spring", bounce: 0.12, visualDuration: 0.4 }}
+                    className="absolute inset-0 rounded-full bg-white/[0.1] shadow-[inset_0_1px_0_oklch(1_0_0/0.18),0_0_0_1px_oklch(1_0_0/0.1)]"
+                  />
+                ) : null}
+                <span className="relative">{item.label}</span>
               </Link>
             </li>
           );

@@ -1,6 +1,9 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 
+import { Rosette } from "@/components/art/rosette";
+import { plateBands, seedFrom } from "@/components/art/guilloche";
+import { Reveal } from "@/components/motion/reveal";
 import { cn } from "@/lib/utils";
 
 /** Page-width container: 1240px max, 16px gutters on phones. */
@@ -10,21 +13,24 @@ export function Container({ className, ...props }: ComponentProps<"div">) {
 
 type CtaVariant = "primary" | "secondary" | "inverse" | "inverse-outline";
 
+// Pills, Apple style: they answer on press (scale) and catch light on hover (sheen, glow).
 const CTA_BASE =
-  "inline-flex items-center justify-center gap-2 rounded-lg font-medium whitespace-nowrap transition-colors duration-150 outline-none select-none focus-visible:ring-3";
+  "press inline-flex items-center justify-center gap-2 rounded-full font-medium whitespace-nowrap outline-none select-none focus-visible:ring-3 duration-200";
 
 const CTA_VARIANTS: Record<CtaVariant, string> = {
-  primary: "bg-primary text-primary-foreground hover:bg-primary/88 focus-visible:ring-ring/50",
-  secondary:
-    "border border-border bg-background text-foreground hover:border-foreground/25 hover:bg-muted focus-visible:ring-ring/50",
-  inverse: "bg-white text-navy-950 hover:bg-navy-100 focus-visible:ring-sky-accent/70",
-  "inverse-outline":
-    "border border-white/25 text-white hover:border-white/45 hover:bg-white/8 focus-visible:ring-sky-accent/70",
+  // Ink on paper, with a gold hairline that brightens on hover.
+  primary:
+    "sheen bg-ink text-paper shadow-[inset_0_1px_0_oklch(1_0_0/0.14),0_0_0_1px_var(--gold-rule)] hover:shadow-[inset_0_1px_0_oklch(1_0_0/0.14),0_0_0_1px_var(--gold),0_14px_30px_-16px_var(--ink)] focus-visible:ring-prussian/50",
+  secondary: "glass text-foreground hover:shadow-[0_0_0_1px_var(--rule-strong)] focus-visible:ring-prussian/50",
+  // Struck gold on a plate.
+  inverse:
+    "sheen bg-[linear-gradient(105deg,var(--gold-deep),var(--gold-light)_32%,var(--gold)_58%,var(--gold-light)_86%)] text-plate-deep shadow-[inset_0_1px_0_oklch(1_0_0/0.55),inset_0_-1px_0_oklch(0.4_0.08_75/0.5),0_12px_30px_-14px_oklch(0.77_0.12_85/0.7)] hover:shadow-[inset_0_1px_0_oklch(1_0_0/0.55),inset_0_-1px_0_oklch(0.4_0.08_75/0.5),0_18px_40px_-14px_oklch(0.77_0.12_85/0.85)] focus-visible:ring-gold/70",
+  "inverse-outline": "glass-ink text-paper hover:bg-gold/10 focus-visible:ring-gold/70",
 };
 
 const CTA_SIZES = {
-  default: "h-11 px-5 text-[0.9375rem]",
-  sm: "h-9 px-3.5 text-sm",
+  default: "h-12 px-6 text-[0.9375rem]",
+  sm: "h-9 px-4 text-sm",
 } as const;
 
 export function ctaClasses(variant: CtaVariant = "primary", size: keyof typeof CTA_SIZES = "default") {
@@ -71,7 +77,7 @@ export function SectionHeading({
     <div className={cn("grid gap-5 lg:grid-cols-12 lg:gap-8", className)}>
       <h2
         id={id}
-        className="text-balance font-display text-[2rem] leading-[1.08] font-semibold tracking-[-0.022em] sm:text-[2.5rem] lg:col-span-7 lg:text-[2.75rem]"
+        className="text-display text-[2.5rem] sm:text-[3.5rem] lg:col-span-7 lg:text-[4.25rem]"
       >
         {title}
       </h2>
@@ -79,7 +85,7 @@ export function SectionHeading({
         <p
           className={cn(
             "max-w-[60ch] text-pretty text-[1.0625rem] leading-relaxed lg:col-span-5 lg:self-end",
-            surface === "dark" ? "text-navy-200" : "text-muted-foreground",
+            surface === "dark" ? "text-paper/75" : "text-muted-foreground",
           )}
         >
           {lead}
@@ -94,19 +100,28 @@ export function PageMasthead({
   title,
   lead,
   children,
+  seed = "aurex",
 }: {
   title: ReactNode;
   lead: ReactNode;
   children?: ReactNode;
+  /** Chooses this page's engraved rosette (each page gets its own). */
+  seed?: string;
 }) {
   return (
-    <div className="bg-navy-900 text-white">
-      <Container className="pt-16 pb-16 sm:pt-20 sm:pb-20 lg:pt-24">
-        <h1 className="max-w-[18ch] font-display text-[2.5rem] leading-[1.03] font-semibold tracking-[-0.03em] sm:text-[3.5rem] lg:text-[4rem]">
-          {title}
-        </h1>
-        <p className="mt-6 max-w-[62ch] text-pretty text-lg leading-relaxed text-navy-200 sm:text-xl">{lead}</p>
-        {children}
+    <div className="relative isolate overflow-hidden text-white">
+      <div aria-hidden className="aurora-hero" />
+      <div aria-hidden className="absolute top-16 -right-[34vw] size-[90vw] opacity-40 sm:-right-[18vw] sm:size-[62vw] sm:opacity-60 lg:top-6 lg:-right-[8vw] lg:size-[min(46vw,640px)] lg:opacity-90">
+        <Rosette bands={plateBands(seedFrom(seed))} microprint={false} delay={0.05} />
+      </div>
+      <Container className="relative pt-36 pb-20 sm:pt-40 sm:pb-24 lg:pt-48 lg:pb-28">
+        <Reveal onMount>
+          <h1 className="max-w-[14ch] text-display text-[3rem] sm:text-[4.5rem] lg:text-[5.75rem]">{title}</h1>
+        </Reveal>
+        <Reveal onMount delay={0.15}>
+          <p className="mt-7 max-w-[56ch] text-pretty text-lg leading-relaxed text-paper/78 sm:text-xl">{lead}</p>
+        </Reveal>
+        {children ? <Reveal onMount delay={0.28}>{children}</Reveal> : null}
       </Container>
     </div>
   );

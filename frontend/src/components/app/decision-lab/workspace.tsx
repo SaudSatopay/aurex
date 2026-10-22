@@ -11,6 +11,7 @@ import { useSession } from "@/components/app/session-provider";
 import { EmptyState, Notice, SkeletonBlock, TableSkeleton } from "@/components/app/states";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Reveal } from "@/components/motion/reveal";
 import { useFilterOptions } from "@/hooks/use-filter-options";
 import { useFilters } from "@/hooks/use-filters";
 import { useInvalidateOrg, useOrgMutation, useOrgQuery } from "@/hooks/use-org-query";
@@ -594,14 +595,22 @@ export function DecisionLabWorkspace() {
                         Run the simulation again to update it{current.scenario ? ", or save a new version" : ""}.
                       </Notice>
                     ) : null}
-                    <div className={simulate.isPending ? "opacity-55 transition-opacity" : "transition-opacity"}>
-                      <SimulationResults
-                        result={current.result}
-                        scopeLabel={scopeText(current.result.scope.store_ids)}
-                        categories={categoryNames}
-                        engineVersion={engineVersion}
-                        title={resultHeader}
-                      />
+                    <div
+                      className={
+                        simulate.isPending
+                          ? "opacity-55 blur-[1px] transition-[opacity,filter] duration-300"
+                          : "transition-[opacity,filter] duration-300"
+                      }
+                    >
+                      <Reveal onMount y={14} blur={8}>
+                        <SimulationResults
+                          result={current.result}
+                          scopeLabel={scopeText(current.result.scope.store_ids)}
+                          categories={categoryNames}
+                          engineVersion={engineVersion}
+                          title={resultHeader}
+                        />
+                      </Reveal>
                     </div>
                     {loaded && current.scenario?.id === loaded.id ? (
                       <Panel title="Version history" description="Every run of this scenario, newest first">
@@ -663,7 +672,7 @@ export function DecisionLabWorkspace() {
                 <QueryError error={scenarios.error} onRetry={() => void scenarios.refetch()} />
               </div>
             ) : (
-              <div className="border-t">
+              <div className="border-t border-(--glass-border)">
                 <ScenarioList scenarios={scenarioList} {...listProps} />
               </div>
             )}

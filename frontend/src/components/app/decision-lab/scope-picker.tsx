@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Shimmer } from "@/components/app/states";
 import { useFilterOptions } from "@/hooks/use-filter-options";
 import type { FilterStore, FiltersResponse } from "@/lib/app/types";
 import { cn } from "@/lib/utils";
@@ -66,7 +66,7 @@ function StoreChecklist({
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[min(20rem,calc(100vw-2rem))] gap-0 p-0">
-        <div className="border-b px-3 py-2.5">
+        <div className="border-b border-(--glass-border) px-3 py-2.5">
           <p className="text-sm font-medium">Stores in scope</p>
           <p className="text-xs text-muted-foreground">
             {scoped ? "Only the stores assigned to you are listed." : "Leave all unchecked for the whole company."}
@@ -77,7 +77,10 @@ function StoreChecklist({
             const id = `${listId}-${store.id}`;
             return (
               <li key={store.id}>
-                <label htmlFor={id} className="flex cursor-pointer items-start gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
+                <label
+                  htmlFor={id}
+                  className="flex cursor-pointer items-start gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors duration-150 hover:bg-foreground/[0.05] dark:hover:bg-white/[0.06]"
+                >
                   <Checkbox
                     id={id}
                     className="mt-0.5"
@@ -97,7 +100,7 @@ function StoreChecklist({
             );
           })}
         </ul>
-        <div className="flex items-center justify-between gap-2 border-t px-3 py-2">
+        <div className="flex items-center justify-between gap-2 border-t border-(--glass-border) px-3 py-2">
           <Button variant="ghost" size="sm" onClick={() => setDraft([])} disabled={draft.length === 0}>
             Clear
           </Button>
@@ -140,8 +143,8 @@ export function ScopePicker({
     if (query.isPending) {
       return (
         <div className={cn("grid gap-3 sm:grid-cols-2", className)} aria-hidden>
-          <Skeleton className="h-8" />
-          <Skeleton className="h-8" />
+          <Shimmer className="h-8 rounded-lg" />
+          <Shimmer className="h-8 rounded-lg" />
         </div>
       );
     }

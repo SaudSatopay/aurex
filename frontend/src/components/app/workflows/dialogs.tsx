@@ -258,7 +258,7 @@ export function CreateRecommendationDialog({
             rows={3}
             hint="One per line. Reviewers see them next to the predicted impact."
           />
-          <fieldset className="grid gap-4 rounded-lg bg-muted/40 p-3 sm:grid-cols-3">
+          <fieldset className="grid gap-4 rounded-xl border border-(--glass-border) bg-white/40 p-3 shadow-[inset_0_1px_0_var(--glass-edge)] sm:grid-cols-3 dark:bg-white/[0.04]">
             <legend className="px-1 text-sm font-medium">Predicted impact (optional)</legend>
             <SelectField
               label="Measure"

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
+import { AuthCard, AuthSwitch, AuthTitle } from "@/components/auth/auth-card";
 import { DemoPanel } from "@/components/auth/demo-panel";
 import { AuthRedirectProvider } from "@/components/auth/redirect";
 import { SignInForm } from "@/components/auth/sign-in-form";
-import { TextLink } from "@/components/marketing/primitives";
 
 export const metadata: Metadata = {
   title: "Sign in",
@@ -13,16 +13,18 @@ export const metadata: Metadata = {
 export default function SignInPage() {
   return (
     <AuthRedirectProvider>
-      <h1 className="font-display text-[2rem] leading-tight font-semibold tracking-[-0.025em]">Sign in to AUREX</h1>
-      <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
-        Use the email address and password for your AUREX account.
-      </p>
-      <div className="mt-8 rounded-2xl bg-card p-5 ring-1 ring-foreground/10 sm:p-7">
-        <SignInForm />
-      </div>
-      <p className="mt-6 text-center text-sm text-muted-foreground">
-        New to AUREX? <TextLink href="/sign-up">Create an account</TextLink>
-      </p>
+      <AuthCard>
+        <AuthTitle>Sign in to AUREX</AuthTitle>
+        <p className="mt-4 text-[0.9375rem] leading-relaxed text-muted-foreground">
+          Use the email address and password for your AUREX account.
+        </p>
+        <div className="mt-8">
+          <SignInForm />
+        </div>
+        <AuthSwitch href="/sign-up" label="Create an account">
+          New to AUREX?
+        </AuthSwitch>
+      </AuthCard>
       <DemoPanel />
     </AuthRedirectProvider>
   );

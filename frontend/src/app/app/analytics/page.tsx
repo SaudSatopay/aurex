@@ -12,6 +12,7 @@ import { NoteList, PageHeader, Panel, Stat } from "@/components/app/page";
 import { CategoryMixPanel, StoresPanel } from "@/components/app/sections/stores";
 import { useSession } from "@/components/app/session-provider";
 import { EmptyState, ErrorState, QueryView, TableSkeleton } from "@/components/app/states";
+import { NumberTicker } from "@/components/kit/number-ticker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -298,6 +299,10 @@ function BridgeView() {
   );
 }
 
+/** One figure in a glass ledger: hairline dividers, a soft wash on hover. */
+const LEDGER_CELL =
+  "border-t border-l border-(--glass-border) p-4 transition-colors duration-300 ease-(--ease-out) hover:bg-white/50 sm:p-5 dark:hover:bg-white/[0.04]";
+
 function BridgeResult({
   data,
   breakdown,
@@ -352,19 +357,21 @@ function BridgeResult({
   return (
     <div className="space-y-6">
       <div className={dimmed ? "opacity-55" : undefined}>
-        <div className="grid gap-px overflow-hidden rounded-xl bg-border ring-1 ring-foreground/10 sm:grid-cols-3">
-          <div className="bg-card p-4 sm:p-5">
-            <Stat label="Base period" value={money(data.base_period.net_sales)} hint={baseLabel} />
-          </div>
-          <div className="bg-card p-4 sm:p-5">
-            <Stat label="Current period" value={money(data.current_period.net_sales)} hint={currentLabel} />
-          </div>
-          <div className="bg-card p-4 sm:p-5">
-            <Stat
-              label="Change in net sales"
-              value={signed(data.change)}
-              hint={<ChangeIndicator change={data.change_pct}>{formatPercent(data.change_pct, { signed: true })}</ChangeIndicator>}
-            />
+        <div className="overflow-hidden rounded-2xl glass">
+          <div className="-mt-px -ml-px grid sm:grid-cols-3">
+            <div className={LEDGER_CELL}>
+              <Stat label="Base period" value={<NumberTicker value={data.base_period.net_sales} format={money} />} hint={baseLabel} />
+            </div>
+            <div className={LEDGER_CELL}>
+              <Stat label="Current period" value={<NumberTicker value={data.current_period.net_sales} format={money} />} hint={currentLabel} />
+            </div>
+            <div className={LEDGER_CELL}>
+              <Stat
+                label="Change in net sales"
+                value={<NumberTicker value={data.change} format={signed} />}
+                hint={<ChangeIndicator change={data.change_pct}>{formatPercent(data.change_pct, { signed: true })}</ChangeIndicator>}
+              />
+            </div>
           </div>
         </div>
       </div>

@@ -20,13 +20,24 @@ import { cn } from "@/lib/utils";
 
 export type Tone = "neutral" | "good" | "warning" | "danger" | "info" | "live";
 
+/* Glass-tinted pills: a translucent tint of the status colour over the surface, a bright top edge. */
 const TONE_CLASS: Record<Tone, string> = {
-  neutral: "bg-muted text-muted-foreground ring-foreground/8",
+  neutral: "bg-white/55 text-muted-foreground ring-(--glass-border) dark:bg-white/[0.06]",
   info: "bg-brand-50 text-brand-700 ring-brand-200/80 dark:bg-brand-800/30 dark:text-brand-200 dark:ring-brand-700/40",
   good: "bg-success/10 text-[color-mix(in_oklch,var(--success),var(--foreground)_32%)] ring-success/25",
   live: "bg-success/12 text-[color-mix(in_oklch,var(--success),var(--foreground)_32%)] ring-success/35",
   warning: "bg-warning/14 text-[color-mix(in_oklch,var(--warning),var(--foreground)_55%)] ring-warning/35",
   danger: "bg-destructive/8 text-destructive ring-destructive/25",
+};
+
+/** Status dot shown when a badge has no icon (identity never rests on colour alone: the word is always there). */
+const DOT_CLASS: Record<Tone, string> = {
+  neutral: "bg-muted-foreground/70",
+  info: "bg-primary",
+  good: "bg-success",
+  live: "bg-success",
+  warning: "bg-warning",
+  danger: "bg-destructive",
 };
 
 /** Small status pill: always an icon plus a word, never colour alone. */
@@ -47,12 +58,21 @@ export function StatusBadge({
     <span
       title={title}
       className={cn(
-        "inline-flex h-5 max-w-full shrink-0 items-center gap-1 rounded-full px-2 text-xs font-medium whitespace-nowrap ring-1 ring-inset",
+        "inline-flex h-5 max-w-full shrink-0 items-center gap-1 rounded-full px-2 text-xs font-medium whitespace-nowrap shadow-[inset_0_1px_0_var(--glass-edge)] ring-1 ring-inset backdrop-blur-sm",
         TONE_CLASS[tone],
         className,
       )}
     >
-      {Icon ? <Icon className="size-3 shrink-0" aria-hidden /> : null}
+      {Icon ? (
+        <Icon className="size-3 shrink-0" aria-hidden />
+      ) : (
+        <span aria-hidden className="relative flex size-1.5 shrink-0">
+          {tone === "live" ? (
+            <span className={cn("absolute inline-flex size-full animate-ping rounded-full opacity-60 motion-reduce:hidden", DOT_CLASS[tone])} />
+          ) : null}
+          <span className={cn("relative inline-flex size-1.5 rounded-full", DOT_CLASS[tone])} />
+        </span>
+      )}
       <span className="truncate">{children}</span>
     </span>
   );

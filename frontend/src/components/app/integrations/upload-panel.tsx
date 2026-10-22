@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useInvalidateOrg, useOrgQuery } from "@/hooks/use-org-query";
 import { api, apiDownload, ApiError, orgPath } from "@/lib/api";
 import { formatBytes, formatNumber } from "@/lib/app/format";
+import { cn } from "@/lib/utils";
 import type { EntitySpec, Integration, SyncJob, SyncJobDetail } from "@/lib/app/types";
 
 import { ACTIVE_JOB } from "./jobs";
@@ -27,7 +28,11 @@ function UploadResult({ jobId }: { jobId: string }) {
   });
   const data = job.data;
   return (
-    <div role="status" aria-live="polite" className="rounded-lg bg-muted/60 px-3.5 py-3 text-sm">
+    <div
+      role="status"
+      aria-live="polite"
+      className="rounded-xl border border-(--glass-border) bg-white/40 px-3.5 py-3 text-sm shadow-[inset_0_1px_0_var(--glass-edge)] dark:bg-white/[0.04]"
+    >
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-medium">Import job</span>
         {data ? <JobStatusBadge status={data.status} /> : <JobStatusBadge status="queued" />}
@@ -76,6 +81,7 @@ export function UploadPanel({
   const [pending, setPending] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const spec = supported.find((e) => e.key === entity);
   const required = spec?.fields.filter((f) => f.required).map((f) => f.name) ?? [];
 
@@ -196,14 +202,29 @@ export function UploadPanel({
           </Label>
           <label
             htmlFor={`${formId}-file`}
-            className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-input bg-muted/30 px-4 py-6 text-center text-sm transition-colors hover:bg-muted/50 has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50"
+            data-dragging={dragging || undefined}
+            className={cn(
+              "group/drop flex cursor-pointer flex-col items-center justify-center gap-2.5 rounded-2xl border border-dashed border-(--glass-border) bg-white/40 px-4 py-8 text-center text-sm shadow-[inset_0_1px_0_var(--glass-edge)] transition-[background-color,border-color,box-shadow,scale] duration-300 ease-(--ease-out) hover:border-primary/40 hover:bg-white/60 has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50 dark:bg-white/[0.03] dark:hover:bg-white/[0.06]",
+              "data-dragging:scale-[1.01] data-dragging:border-primary/60 data-dragging:bg-primary/[0.06] data-dragging:shadow-[inset_0_1px_0_var(--glass-edge),0_0_0_4px_color-mix(in_oklch,var(--primary)_14%,transparent)] motion-reduce:transition-none",
+              file && "border-solid border-primary/30",
+            )}
+            onDragEnter={(e) => {
+              e.preventDefault();
+              setDragging(true);
+            }}
             onDragOver={(e) => e.preventDefault()}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
+            }}
             onDrop={(e) => {
               e.preventDefault();
+              setDragging(false);
               chooseFile(e.dataTransfer.files?.[0] ?? null);
             }}
           >
-            <FileSpreadsheetIcon className="size-6 text-muted-foreground" aria-hidden />
+            <span className="grid size-11 place-items-center rounded-full bg-sheet text-muted-foreground shadow-[0_0_0_1px_var(--rule-strong),0_0_0_4px_var(--sheet),0_0_0_5px_var(--rule)] transition-[translate,color] duration-300 ease-(--ease-out) group-hover/drop:-translate-y-0.5 group-hover/drop:text-ink group-data-dragging/drop:-translate-y-1 group-data-dragging/drop:text-ink motion-reduce:transition-none">
+              <FileSpreadsheetIcon className="size-5" aria-hidden />
+            </span>
             {file ? (
               <span>
                 <span className="font-medium">{file.name}</span> <span className="text-muted-foreground">({formatBytes(file.size)})</span>
@@ -223,7 +244,7 @@ export function UploadPanel({
         </div>
 
         {error ? (
-          <div role="alert" className="flex items-start gap-2.5 rounded-lg bg-destructive/6 px-3.5 py-3 text-sm ring-1 ring-destructive/25">
+          <div role="alert" className="flex items-start gap-2.5 rounded-xl bg-destructive/6 px-3.5 py-3 text-sm ring-1 ring-destructive/25">
             <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
             <span>
               {error.message}

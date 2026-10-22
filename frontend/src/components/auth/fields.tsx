@@ -3,12 +3,14 @@
 import { CircleAlertIcon, EyeIcon, EyeOffIcon, LoaderCircleIcon } from "lucide-react";
 import { useState, type ComponentProps, type ReactNode } from "react";
 
+import { ctaClasses } from "@/components/marketing/primitives";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
+// Glass inputs: a light, slightly sunken well that brightens on hover and lights a brand ring on focus.
 const INPUT_CLASS =
-  "h-11 rounded-lg bg-background px-3 text-base shadow-none md:text-[0.9375rem] read-only:bg-muted read-only:text-muted-foreground";
+  "h-11 rounded-xl border-foreground/[0.12] bg-background/70 px-3.5 text-base shadow-[inset_0_1px_2px_oklch(0.19_0.05_263/0.06)] backdrop-blur-sm transition-[border-color,box-shadow,background-color] duration-200 ease-(--ease-out) hover:border-foreground/25 focus-visible:border-primary focus-visible:bg-background focus-visible:ring-4 focus-visible:ring-primary/25 md:text-[0.9375rem] read-only:bg-muted/70 read-only:text-muted-foreground";
 
 export type FieldControlProps = {
   id: string;
@@ -80,7 +82,7 @@ export function PasswordInput({ className, id, ...props }: Omit<ComponentProps<"
         aria-pressed={visible}
         aria-controls={id}
         aria-label="Show password"
-        className="absolute top-1 right-1 grid size-9 place-items-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="press absolute top-1 right-1 grid size-9 place-items-center rounded-lg text-muted-foreground outline-none hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         {visible ? <EyeOffIcon className="size-4" aria-hidden /> : <EyeIcon className="size-4" aria-hidden />}
       </button>
@@ -94,7 +96,7 @@ export function FormAlert({ children, id }: { children: ReactNode; id?: string }
     <div
       id={id}
       role="alert"
-      className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 px-3.5 py-3 text-sm leading-relaxed text-foreground"
+      className="flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/[0.06] px-3.5 py-3 text-sm leading-relaxed text-foreground"
     >
       <CircleAlertIcon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
       <div>{children}</div>
@@ -118,10 +120,7 @@ export function SubmitButton({
       type="submit"
       disabled={pending}
       aria-disabled={pending}
-      className={cn(
-        "inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 text-[0.9375rem] font-medium text-primary-foreground transition-colors outline-none hover:bg-primary/88 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-wait disabled:opacity-80",
-        className,
-      )}
+      className={cn(ctaClasses("primary"), "w-full disabled:cursor-wait disabled:opacity-80", className)}
     >
       {pending ? <LoaderCircleIcon className="size-4 animate-spin" aria-hidden /> : null}
       {pending ? pendingLabel : children}

@@ -31,7 +31,7 @@ export function JsonPreview({
         <p className="text-sm font-medium">{title}</p>
         {summary ? <p className="text-sm text-muted-foreground">{summary}</p> : null}
         {hasValue ? (
-          <pre className="max-h-72 overflow-auto rounded-md bg-muted px-3 py-2 font-mono text-xs leading-relaxed whitespace-pre-wrap break-all">
+          <pre className="max-h-72 overflow-auto rounded-xl border border-(--glass-border) bg-white/45 px-3 py-2 font-mono dark:bg-white/[0.04] text-xs leading-relaxed whitespace-pre-wrap break-all">
             {JSON.stringify(value, null, 2)}
           </pre>
         ) : null}

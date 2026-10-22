@@ -1,7 +1,10 @@
+"use client";
+
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
+import { barFill, GrowBar } from "./bar-list";
 import { ANCHOR_COLOR, NEGATIVE_COLOR, POSITIVE_COLOR } from "./palette";
 
 export type WaterfallStep = {
@@ -64,7 +67,7 @@ export function Waterfall({
         {marker(base)}
         <div className="text-right font-semibold tabular">{format(base)}</div>
 
-        {rows.map((row) => {
+        {rows.map((row, index) => {
           const left = pos(Math.min(row.from, row.to));
           const width = Math.max(0.6, Math.abs(pos(row.to) - pos(row.from)));
           const up = row.delta >= 0;
@@ -75,10 +78,13 @@ export function Waterfall({
                 {row.sublabel ? <p className="truncate text-xs text-muted-foreground">{row.sublabel}</p> : null}
               </div>
               <div className="relative h-5" aria-hidden>
-                <span
-                  className={cn("absolute top-1/2 h-3 -translate-y-1/2 rounded-[3px]")}
-                  style={{ left: `${left}%`, width: `${width}%`, background: up ? POSITIVE_COLOR : NEGATIVE_COLOR }}
-                />
+                <div className="absolute top-1/2 h-3 -translate-y-1/2" style={{ left: `${left}%`, width: `${width}%` }}>
+                  <GrowBar
+                    className={cn("h-3 rounded-[4px]", !up && "origin-right")}
+                    delay={Math.min(index, 12) * 0.05}
+                    style={{ width: "100%", background: barFill(up ? POSITIVE_COLOR : NEGATIVE_COLOR) }}
+                  />
+                </div>
               </div>
               <div className={cn("text-right font-medium tabular", up ? "text-foreground" : "text-destructive")}>
                 <span className="sr-only">{up ? "Increase " : "Decrease "}</span>
@@ -102,7 +108,7 @@ export function Waterfall({
       </div>
       <div className="mt-3 grid grid-cols-[minmax(6.5rem,11rem)_minmax(0,1fr)_auto] gap-x-3 text-xs text-muted-foreground" aria-hidden>
         <span />
-        <div className="flex justify-between border-t pt-1 tabular">
+        <div className="flex justify-between border-t border-(--glass-border) pt-1 tabular">
           <span>{format(min)}</span>
           <span>{format(max)}</span>
         </div>
