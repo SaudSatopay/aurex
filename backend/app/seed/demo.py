@@ -7,7 +7,7 @@ through the real ingestion pipeline in two syncs:
 It also creates an example REST integration still awaiting credentials and a CSV import containing
 deliberately invalid rows, so sync history, error logs and statuses are demonstrated honestly.
 
-Usage:  python -m app.seed.demo [--small] [--reset]
+Usage:  python -m app.seed.demo [--small | --profile hosted] [--reset]
 """
 
 from __future__ import annotations
@@ -94,7 +94,7 @@ def _ensure_user(db: Session, role: Role) -> User:
     return user
 
 
-def seed_demo(db: Session, *, small: bool = False, run_syncs: bool = True) -> dict:
+def seed_demo(db: Session, *, small: bool = False, run_syncs: bool = True, profile: str | None = None) -> dict:
     settings = get_settings()
     started = time.perf_counter()
     org = db.scalar(select(Organization).where(Organization.is_demo.is_(True)))
@@ -130,7 +130,8 @@ def seed_demo(db: Session, *, small: bool = False, run_syncs: bool = True) -> di
             integ = Integration(org_id=org.id, company_id=company.id, provider_key="novamart_synthetic", display_name=name,
                                 status="connected", auth_type="none", is_demo=True,
                                 status_detail="Built-in synthetic demo feed (no external system).",
-                                config={"feed": feed, "small": small, "lookback_days": 3,
+                                config={"feed": feed, "small": small, "profile": profile or ("small" if small else "full"),
+                                        "lookback_days": 3,
                                         "as_of": (end - timedelta(days=7)).isoformat(), "description": description},
                                 created_by=users[Role.ORG_OWNER].id)
             db.add(integ)
@@ -242,6 +243,8 @@ def vacuum_analyze() -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--small", action="store_true", help="compact dataset (tests / quick demos)")
+    parser.add_argument("--profile", choices=("full", "hosted", "small"), default=None,
+                        help="dataset size: full (default, ~1 GB), hosted (~0.25 GB, for small managed databases), small")
     parser.add_argument("--reset", action="store_true", help="delete the existing demo organization first")
     parser.add_argument("--train", action="store_true",
                         help="train the default forecast plan afterwards (company, every store, every category)")
@@ -259,7 +262,7 @@ def main() -> None:
     with session_scope() as db:
         if args.reset:
             reset_demo(db)
-        summary = seed_demo(db, small=args.small)
+        summary = seed_demo(db, small=args.small, profile=args.profile)
         summary["reference"] = load_reference_data(db)
     for job in summary["jobs"]:
         print(f"  {job}")

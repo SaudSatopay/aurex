@@ -52,6 +52,13 @@ Other switches: `-NoBrowser`, `-Rebuild` (force a web build), `-PortableTools` (
 programs are skipped automatically (API from 8000, web app from 3000, checked on IPv4 and IPv6). After starting the
 API the launcher computes the demo dashboard once, so the first page you open is fast.
 
+## Live on Vercel
+
+The synthetic NovaMart demo runs at **https://aurex-nu-nine.vercel.app** (use **Explore the live demo** on the sign-in
+page). One Vercel project serves the Next.js app and the FastAPI API as two services ([vercel.json](vercel.json)) on a
+Neon PostgreSQL database; how it is set up, and what differs from a full deployment, is in
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#10-vercel-one-project-two-services).
+
 ## Quick start (local development)
 
 Prerequisites: Python 3.13 with [uv](https://docs.astral.sh/uv/), Node.js 22, and PostgreSQL 17.

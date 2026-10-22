@@ -3,7 +3,9 @@ import type { NextConfig } from "next";
 // The browser only ever talks to this Next.js origin. Requests to /api/* are proxied to the FastAPI
 // backend so auth cookies stay first-party (HttpOnly, SameSite=Lax) and no CORS is needed.
 // AUREX_API_URL is read when the config is evaluated (build time for `next build`).
-const apiUrl = process.env.AUREX_API_URL ?? "http://127.0.0.1:8000";
+// On Vercel the FastAPI service is routed to /api/* by vercel.json (Vercel Services), so no proxy is needed there.
+const onVercel = Boolean(process.env.VERCEL);
+const apiUrl = process.env.AUREX_API_URL ?? (onVercel ? null : "http://127.0.0.1:8000");
 
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -16,7 +18,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
-  output: "standalone",
+  // Standalone output is for the Docker image and launch.bat; Vercel builds its own output.
+  output: onVercel ? undefined : "standalone",
   poweredByHeader: false,
   experimental: {
     // /api/* is proxied to FastAPI. The first analytics requests after a database start can be slow on a cold
@@ -32,7 +35,7 @@ const nextConfig: NextConfig = {
     },
   },
   async rewrites() {
-    return [{ source: "/api/:path*", destination: `${apiUrl}/api/:path*` }];
+    return apiUrl ? [{ source: "/api/:path*", destination: `${apiUrl}/api/:path*` }] : [];
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

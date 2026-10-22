@@ -37,10 +37,15 @@ def demo_config(config: dict[str, Any]) -> NovaMartConfig:
     settings = get_settings()
     base = NovaMartConfig(seed=int(config.get("seed", settings.demo_seed)),
                           end=date.fromisoformat(config.get("end", settings.demo_end_date)))
-    if config.get("small"):
+    profile = config.get("profile") or ("small" if config.get("small") else "full")
+    if profile == "small":
         from app.seed.novamart_generator import small_config
 
         base = small_config(seed=base.seed)
+    elif profile == "hosted":
+        from app.seed.novamart_generator import hosted_config
+
+        base = hosted_config(seed=base.seed, end=base.end)
     return base
 
 

@@ -895,3 +895,12 @@ def small_config(**overrides: object) -> NovaMartConfig:
                           products_per_category=3, start=date(2025, 10, 1), end=date(2026, 4, 30),
                           daily_snapshot_days=30)
     return replace(base, **overrides)  # type: ignore[arg-type]
+
+
+def hosted_config(**overrides: object) -> NovaMartConfig:
+    """Hosted-demo configuration: every store and category, 3 products per category, 2 years of history.
+
+    About a quarter of the full dataset, so the demo fits a small managed PostgreSQL (e.g. a 0.5 GB free tier).
+    """
+    base = NovaMartConfig(products_per_category=3, start=date(2024, 10, 1), daily_snapshot_days=30)
+    return replace(base, **overrides)  # type: ignore[arg-type]

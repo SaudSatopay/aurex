@@ -3,6 +3,8 @@
 > Status: on GitHub Actions the compose file validates and both Docker images build (see [TESTING.md](TESTING.md)).
 > The stack itself — Caddy, Celery worker/beat, backups — has **not been started** (Docker was not installed on the
 > development machine). Migrations, the API, inline workers, the seed and the periodic CLI were executed locally.
+>
+> The public showcase runs on **Vercel** (section 10): https://aurex-nu-nine.vercel.app, with a Neon PostgreSQL database.
 
 ## 1. Topology (docker-compose)
 
@@ -142,3 +144,36 @@ Demo sign-in buttons then appear on the sign-in page.
 - [ ] Optional services configured deliberately: `AUREX_ANTHROPIC_API_KEY` (data is sent to the model
       provider for AI answers), market-data licence, news fetching
 - [ ] Data-sharing agreements in place for every external connection ([INTEGRATIONS.md](INTEGRATIONS.md))
+
+## 10. Vercel (one project, two services)
+
+The public showcase runs on Vercel as **one project** (`aurex`, team `satopaysaud-2517s-projects`) using
+[Vercel Services](https://vercel.com/docs/services): [vercel.json](../vercel.json) declares the Next.js app
+(`frontend/`) and the FastAPI app (`backend/`, entrypoint `app.main:app`, Python 3.13 from `backend/.python-version`,
+dependencies from `uv.lock`). Top-level rewrites send `/api/*` to the API service and everything else to the web
+service, so the browser talks to one origin: cookies stay first-party and no CORS is needed. On Vercel the web
+app's own `/api` proxy is switched off (`frontend/next.config.ts` reads `VERCEL`) and the standalone output is not
+used. [.vercelignore](../.vercelignore) keeps local tooling, data, tests and docs out of the upload.
+
+| Piece | Choice |
+|---|---|
+| Database | Neon PostgreSQL 17 from the Vercel Marketplace (resource `aurex-db`, region `iad1`, free plan), connected to the project. The API uses the **unpooled** connection (`AUREX_DATABASE_URL` = Neon's `DATABASE_URL_UNPOOLED` with the `postgresql+psycopg://` scheme): the loader's `COPY` into temporary tables needs a session, not PgBouncer transaction pooling. |
+| Demo data | Hosted profile (`python -m app.seed.demo --profile hosted --train`): all 8 stores and 10 categories, 3 products per category, history from 2024-10-01 to 2026-10-17, 22 forecast models; about 139 MB, which fits Neon's free 0.5 GB. The full profile (~1 GB) needs a paid plan. Loaded from a workstation with `AUREX_DATABASE_URL` pointing at Neon. |
+| Jobs | `AUREX_INLINE_JOBS_SYNCHRONOUS=true`: a job runs inside the request that enqueued it, because a serverless instance may be frozen once the response is sent. Long syncs must fit the function's maximum duration. |
+| Files | `AUREX_STORAGE_DIR=/tmp/aurex-storage`. `/tmp` belongs to one function instance and is lost when it is recycled, so a report generated on one instance may be missing on another (download answers 409 "not ready"; generate it again). Durable storage (for example Vercel Blob) is the fix for real use. |
+| Security | `AUREX_ENV=production`, `AUREX_COOKIE_SECURE=true`, generated `AUREX_JWT_SECRET` and `AUREX_SECRET_ENCRYPTION_KEY` (sensitive variables), `AUREX_TRUSTED_PROXY_HOPS=1` (Vercel overwrites `X-Forwarded-For` with the client address). Demo mode is on with `AUREX_ALLOW_DEMO_IN_PRODUCTION=true`, which is acceptable only because the database holds synthetic data alone. |
+| Rate limits | In memory per function instance (no Redis). |
+| Other | `AUREX_DATABASE_POOL_SIZE=3`, `AUREX_LOG_JSON=true`. The advisor runs in deterministic mode (no Anthropic key). Celery, beat and backups from the compose stack are not used; Neon keeps its own point-in-time history. |
+
+Commands (repository root, Vercel CLI logged in):
+
+```bash
+vercel link --yes --project aurex                         # once; creates .vercel/ (git-ignored)
+vercel integration add neon --name aurex-db -m region=iad1 # once; adds the Neon env vars to the project
+vercel env add AUREX_JWT_SECRET production --sensitive    # one per variable above, for production and preview
+vercel deploy                                             # preview deployment
+vercel deploy --prod                                      # production (https://aurex-nu-nine.vercel.app)
+```
+
+The project is also connected to the GitHub repository, so pushes to `main` deploy production and other branches get
+previews. The Python function bundle is about 411 MB before Vercel's dependency optimization.

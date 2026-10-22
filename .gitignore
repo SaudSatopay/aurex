@@ -41,3 +41,11 @@ Thumbs.db
 
 # Portable tools, downloads, logs and state created by launch.bat
 .tools/
+
+# Vercel CLI link and pulled environment files
+.vercel
+
+# Agent skills installed by tooling (e.g. the Neon integration); not part of the project
+.agents/
+.claude/
+skills-lock.json
